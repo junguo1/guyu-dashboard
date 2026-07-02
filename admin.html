@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>谷雨看板 · 同步管理</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .container {
+      width: 100%;
+      max-width: 520px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      margin-bottom: 1rem;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .header .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .header h1 { font-size: 1.4rem; color: #1a1a1a; font-weight: 700; }
+    .header p { font-size: 0.88rem; color: #64748b; margin-top: 0.3rem; }
+
+    .status-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .status-item {
+      flex: 1;
+      text-align: center;
+      padding: 0.8rem 0.5rem;
+      background: #f8fafc;
+      border-radius: 10px;
+    }
+    .status-item .val {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #2563eb;
+    }
+    .status-item .val.on { color: #059669; }
+    .status-item .val.off { color: #9ca3af; }
+    .status-item .lbl {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 0.2rem;
+    }
+
+    .input-group { margin-bottom: 1.2rem; }
+    .input-group label {
+      display: block;
+      font-size: 0.85rem;
+      color: #374151;
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+    }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+    input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .input-hint {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-top: 0.3rem;
+    }
+
+    .drop-zone {
+      border: 2px dashed #d1d5db;
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      background: #fafbfc;
+      margin-bottom: 1rem;
+    }
+    .drop-zone:hover { border-color: #2563eb; background: #eff6ff; }
+    .drop-zone.dragover {
+      border-color: #2563eb;
+      background: #dbeafe;
+      transform: scale(1.01);
+    }
+    .drop-zone .icon { font-size: 2.2rem; margin-bottom: 0.5rem; }
+    .drop-zone p { color: #64748b; font-size: 0.9rem; }
+    .drop-zone .hint { font-size: 0.78rem; color: #94a3b8; margin-top: 0.3rem; }
+
+    .file-info {
+      display: none;
+      align-items: center;
+      gap: 0.8rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 10px;
+      padding: 0.8rem 1rem;
+      margin-bottom: 1rem;
+    }
+    .file-info.visible { display: flex; }
+    .file-info .fi-icon { font-size: 1.5rem; }
+    .file-info .fi-name { font-weight: 600; font-size: 0.88rem; color: #1e40af; }
+    .file-info .fi-size { font-size: 0.78rem; color: #64748b; }
+    .file-info .fi-remove {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+    }
+    .file-info .fi-remove:hover { color: #ef4444; background: #fef2f2; }
+
+    .progress-wrap {
+      display: none;
+      margin-bottom: 1rem;
+    }
+    .progress-wrap.visible { display: block; }
+    .progress-track {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2563eb, #7c3aed);
+      width: 0%;
+      transition: width 0.3s;
+      border-radius: 6px;
+    }
+    .progress-text {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 0.4rem;
+      text-align: center;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.85rem 1.5rem;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(37,99,235,0.35);
+    }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled {
+      background: #cbd5e1;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+      box-shadow: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .btn-secondary:hover { background: #e2e8f0; box-shadow: none; }
+
+    .msg {
+      padding: 0.7rem 1rem;
+      border-radius: 10px;
+      margin-top: 1rem;
+      font-size: 0.88rem;
+      display: none;
+    }
+    .msg.visible { display: flex; align-items: center; gap: 0.5rem; }
+    .msg.success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .msg.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    .links {
+      display: flex;
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+    .links .btn-secondary { flex: 1; }
+
+    .lock-screen {
+      text-align: center;
+      padding: 1rem 0;
+    }
+    .lock-screen .lock-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .lock-screen h2 { font-size: 1.2rem; color: #1a1a1a; margin-bottom: 0.5rem; }
+    .lock-screen p { font-size: 0.88rem; color: #64748b; margin-bottom: 1.5rem; }
+
+    .footer {
+      text-align: center;
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.6);
+      padding: 0.5rem 0;
+    }
+
+    .save-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+    }
+    .save-row input[type="checkbox"] {
+      accent-color: #2563eb;
+    }
+    .save-row label {
+      font-size: 0.78rem;
+      color: #64748b;
+      font-weight: normal;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Lock Screen -->
+    <div class="card" id="lockScreen">
+      <div class="lock-screen">
+        <div class="lock-icon">🔐</div>
+        <h2>谷雨看板 · 同步管理</h2>
+        <p>请输入管理密码以继续</p>
+        <div class="input-group" style="text-align:left;">
+          <input type="password" id="lockPassword" placeholder="输入密码" style="text-align:center;">
+        </div>
+        <button class="btn" id="unlockBtn">进入管理</button>
+        <div class="msg" id="lockMsg"></div>
+      </div>
+    </div>
+
+    <!-- Main Panel (hidden until unlocked) -->
+    <div id="mainPanel" style="display:none;">
+      <div class="card">
+        <div class="header">
+          <div class="icon">📊</div>
+          <h1>谷雨看板 · 同步管理</h1>
+          <p>选择本地 HTML 文件，一键同步到线上</p>
+        </div>
+
+        <div class="status-bar">
+          <div class="status-item">
+            <div class="val" id="st-status">—</div>
+            <div class="lbl">状态</div>
+          </div>
+          <div class="status-item">
+            <div class="val" id="st-version">—</div>
+            <div class="lbl">版本</div>
+          </div>
+          <div class="status-item">
+            <div class="val" id="st-time">—</div>
+            <div class="lbl">上次同步</div>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>GitHub Token</label>
+          <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxx">
+          <div class="save-row">
+            <input type="checkbox" id="saveToken" checked>
+            <label for="saveToken">记住 Token（保存在本浏览器）</label>
+          </div>
+        </div>
+
+        <div class="drop-zone" id="dropzone">
+          <div class="icon">📁</div>
+          <p>拖拽 HTML 文件到这里，或点击选择</p>
+          <p class="hint">选择你编辑好的看板 HTML 文件</p>
+          <input type="file" id="fileInput" accept=".html,.htm" style="display:none">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+          <span class="fi-icon">📄</span>
+          <div>
+            <div class="fi-name" id="fiName"></div>
+            <div class="fi-size" id="fiSize"></div>
+          </div>
+          <button class="fi-remove" id="fiRemove">✕</button>
+        </div>
+
+        <div class="progress-wrap" id="progressWrap">
+          <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-text" id="progressText">准备上传...</div>
+        </div>
+
+        <button class="btn" id="syncBtn" disabled>同步到线上</button>
+
+        <div class="msg" id="msg"></div>
+
+        <div class="links">
+          <button class="btn btn-secondary" id="viewBtn">查看看板</button>
+          <button class="btn btn-secondary" id="refreshBtn">刷新状态</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">谷雨看板同步管理 · 仅管理员可操作</div>
+  </div>
+
+  <script>
+  (function() {
+    // ─── Config ──────────────────────────────────────────────────────────────
+    var GH_USER = 'junguo1';
+    var GH_REPO = 'guyu-dashboard';
+    var GH_BRANCH = 'main';
+    var LOCK_PASSWORD = 'guyu2026';  // 管理密码，可自行修改
+    var DASHBOARD_URL = 'https://' + GH_USER + '.github.io/' + GH_REPO + '/';
+
+    // ─── Elements ────────────────────────────────────────────────────────────
+    var lockScreen = document.getElementById('lockScreen');
+    var mainPanel = document.getElementById('mainPanel');
+    var lockPassword = document.getElementById('lockPassword');
+    var unlockBtn = document.getElementById('unlockBtn');
+    var lockMsg = document.getElementById('lockMsg');
+
+    var ghToken = document.getElementById('ghToken');
+    var saveToken = document.getElementById('saveToken');
+    var dropzone = document.getElementById('dropzone');
+    var fileInput = document.getElementById('fileInput');
+    var fileInfo = document.getElementById('fileInfo');
+    var syncBtn = document.getElementById('syncBtn');
+    var msg = document.getElementById('msg');
+    var progressWrap = document.getElementById('progressWrap');
+    var progressFill = document.getElementById('progressFill');
+    var progressText = document.getElementById('progressText');
+    var viewBtn = document.getElementById('viewBtn');
+    var refreshBtn = document.getElementById('refreshBtn');
+
+    var selectedFile = null;
+
+    // ─── Unlock ──────────────────────────────────────────────────────────────
+    var unlocked = sessionStorage.getItem('guyu_admin_unlocked');
+    if (unlocked === '1') {
+      showMain();
+    }
+
+    unlockBtn.addEventListener('click', tryUnlock);
+    lockPassword.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') tryUnlock();
+    });
+
+    function tryUnlock() {
+      if (lockPassword.value === LOCK_PASSWORD) {
+        sessionStorage.setItem('guyu_admin_unlocked', '1');
+        showMain();
+      } else {
+        showLockMsg('密码错误');
+      }
+    }
+
+    function showLockMsg(text) {
+      lockMsg.textContent = text;
+      lockMsg.className = 'msg visible error';
+    }
+
+    function showMain() {
+      lockScreen.style.display = 'none';
+      mainPanel.style.display = 'block';
+      loadSavedToken();
+      loadStatus();
+    }
+
+    // ─── Token Management ────────────────────────────────────────────────────
+    function loadSavedToken() {
+      var saved = localStorage.getItem('guyu_gh_token');
+      if (saved) ghToken.value = saved;
+    }
+
+    ghToken.addEventListener('change', function() {
+      if (saveToken.checked && ghToken.value) {
+        localStorage.setItem('guyu_gh_token', ghToken.value);
+      }
+    });
+
+    // ─── File Drop ───────────────────────────────────────────────────────────
+    dropzone.addEventListener('click', function() { fileInput.click(); });
+
+    dropzone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', function() {
+      dropzone.classList.remove('dragover');
+    });
+    dropzone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      var f = e.dataTransfer.files[0];
+      if (f && /\.(html?|htm)$/i.test(f.name)) {
+        handleFile(f);
+      } else {
+        showMsg('请选择 .html 文件', 'error');
+      }
+    });
+
+    fileInput.addEventListener('change', function() {
+      if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
+
+    document.getElementById('fiRemove').addEventListener('click', function() {
+      selectedFile = null;
+      fileInput.value = '';
+      fileInfo.classList.remove('visible');
+      progressWrap.classList.remove('visible');
+      checkReady();
+    });
+
+    function handleFile(f) {
+      selectedFile = f;
+      document.getElementById('fiName').textContent = f.name;
+      document.getElementById('fiSize').textContent = formatSize(f.size);
+      fileInfo.classList.add('visible');
+      progressWrap.classList.remove('visible');
+      progressFill.style.width = '0%';
+      checkReady();
+    }
+
+    function checkReady() {
+      syncBtn.disabled = !(selectedFile && ghToken.value.trim());
+    }
+    ghToken.addEventListener('input', checkReady);
+
+    // ─── Sync ────────────────────────────────────────────────────────────────
+    syncBtn.addEventListener('click', doSync);
+
+    function doSync() {
+      if (!selectedFile || !ghToken.value.trim()) return;
+
+      var token = ghToken.value.trim();
+      if (saveToken.checked) {
+        localStorage.setItem('guyu_gh_token', token);
+      }
+
+      syncBtn.disabled = true;
+      syncBtn.textContent = '同步中...';
+      hideMsg();
+      progressWrap.classList.add('visible');
+      progressFill.style.width = '10%';
+      progressText.textContent = '读取文件...';
+
+      var reader = new FileReader();
+      reader.onload = function() {
+        var htmlContent = reader.result;
+        var base64 = btoa(unescape(encodeURIComponent(htmlContent)));
+
+        progressFill.style.width = '20%';
+        progressText.textContent = '检查远程文件...';
+
+        // Check existing file SHA
+        var checkXhr = new XMLHttpRequest();
+        checkXhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/index.html?ref=' + GH_BRANCH);
+        checkXhr.setRequestHeader('Authorization', 'token ' + token);
+        checkXhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+
+        checkXhr.onload = function() {
+          var sha = null;
+          if (checkXhr.status === 200) {
+            try { sha = JSON.parse(checkXhr.responseText).sha; } catch(e) {}
+          }
+
+          progressFill.style.width = '30%';
+          progressText.textContent = '上传中...';
+
+          // Upload
+          var xhr = new XMLHttpRequest();
+          xhr.open('PUT', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/index.html');
+          xhr.setRequestHeader('Authorization', 'token ' + token);
+          xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+          xhr.setRequestHeader('Content-Type', 'application/json');
+
+          xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+              var pct = Math.round(30 + (e.loaded / e.total) * 55);
+              progressFill.style.width = pct + '%';
+              progressText.textContent = '上传中... ' + Math.round(e.loaded / e.total * 100) + '%';
+            }
+          });
+
+          xhr.onload = function() {
+            progressFill.style.width = '95%';
+            progressText.textContent = '处理中...';
+
+            try {
+              var data = JSON.parse(xhr.responseText);
+              if (xhr.status === 200 || xhr.status === 201) {
+                progressFill.style.width = '100%';
+                progressText.textContent = '同步完成！';
+                var commitSha = data.commit ? data.commit.sha.slice(0, 7) : '';
+                showMsg('✅ 同步成功！提交 ' + commitSha + '，看板将在几秒内更新', 'success');
+                loadStatus();
+                selectedFile = null;
+                fileInput.value = '';
+                fileInfo.classList.remove('visible');
+                setTimeout(function() {
+                  progressWrap.classList.remove('visible');
+                  progressFill.style.width = '0%';
+                }, 3000);
+              } else {
+                throw new Error(data.message || 'HTTP ' + xhr.status);
+              }
+            } catch(e) {
+              showMsg('❌ 同步失败: ' + e.message, 'error');
+              progressWrap.classList.remove('visible');
+            }
+
+            syncBtn.disabled = false;
+            syncBtn.textContent = '同步到线上';
+            checkReady();
+          };
+
+          xhr.onerror = function() {
+            showMsg('❌ 网络错误，请检查连接', 'error');
+            progressWrap.classList.remove('visible');
+            syncBtn.disabled = false;
+            syncBtn.textContent = '同步到线上';
+            checkReady();
+          };
+
+          var body = {
+            message: sha ? '更新看板 - ' + new Date().toLocaleString('zh-CN') : '发布看板 - ' + new Date().toLocaleString('zh-CN'),
+            content: base64,
+            branch: GH_BRANCH
+          };
+          if (sha) body.sha = sha;
+
+          xhr.send(JSON.stringify(body));
+        };
+
+        checkXhr.onerror = function() {
+          showMsg('❌ 网络错误', 'error');
+          progressWrap.classList.remove('visible');
+          syncBtn.disabled = false;
+          syncBtn.textContent = '同步到线上';
+        };
+
+        checkXhr.send();
+      };
+
+      reader.readAsText(selectedFile);
+    }
+
+    // ─── Status ──────────────────────────────────────────────────────────────
+    refreshBtn.addEventListener('click', loadStatus);
+
+    function loadStatus() {
+      var token = ghToken.value.trim();
+      var headers = { 'Accept': 'application/vnd.github.v3+json' };
+      if (token) headers['Authorization'] = 'token ' + token;
+
+      // Get latest commit
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/commits?path=index.html&per_page=1');
+      xhr.setRequestHeader('Authorization', 'token ' + (token || 'none'));
+      xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+
+      xhr.onload = function() {
+        try {
+          var commits = JSON.parse(xhr.responseText);
+          if (Array.isArray(commits) && commits.length > 0) {
+            var c = commits[0];
+            var date = new Date(c.commit.committer.date);
+            document.getElementById('st-status').textContent = '已发布';
+            document.getElementById('st-status').className = 'val on';
+            document.getElementById('st-version').textContent = c.sha.slice(0, 7);
+            document.getElementById('st-time').textContent = date.toLocaleString('zh-CN', {
+              month: '2-digit', day: '2-digit',
+              hour: '2-digit', minute: '2-digit'
+            });
+          } else {
+            document.getElementById('st-status').textContent = '未发布';
+            document.getElementById('st-status').className = 'val off';
+          }
+        } catch(e) {}
+      };
+      xhr.send();
+    }
+
+    // ─── Links ───────────────────────────────────────────────────────────────
+    viewBtn.addEventListener('click', function() {
+      window.open(DASHBOARD_URL, '_blank');
+    });
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+    function showMsg(text, type) {
+      msg.textContent = text;
+      msg.className = 'msg visible ' + type;
+    }
+    function hideMsg() {
+      msg.className = 'msg';
+    }
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(2) + ' MB';
+    }
+  })();
+  </script>
+</body>
+</html>
