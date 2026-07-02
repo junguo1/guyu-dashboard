@@ -5710,33 +5710,53 @@ root.render(React.createElement(Dashboard));
     return '建议：1) 检查 Excel 文件完整性 2) 确认使用最新模板 3) 如问题持续请联系技术支持';
   }
 
-  // ─── 自动从 GitHub 加载数据 ─────────────────────────────────────────────
-  function autoLoadFromGitHub() {
-    if (localStorage.getItem(DATA_KEY)) return;
+  // ─── 自动同步检测（SHA 比对 + 定时轮询）────────────────────────────────
+  var SHA_KEY = 'gy_last_sha';
+
+  function checkGitHubUpdate(isPoll) {
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.xlsx?ref=' + GH_BRANCH);
+    xhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH);
     xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
     xhr.onload = function() {
       if (xhr.status !== 200) return;
       try {
         var res = JSON.parse(xhr.responseText);
-        if (!res.content) return;
-        var binary = atob(res.content);
-        var bytes = new Uint8Array(binary.length);
-        for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        var wb = XLSX.read(bytes, { type: 'array', cellDates: true });
-        if (typeof window.processExcelWorkbook === 'function') {
-          var data = window.processExcelWorkbook(wb);
-          if (data && data.meta && data.storeData) {
-            window.dispatchEvent(new CustomEvent('gy-data-updated', { detail: data }));
-            console.log('[GY] 已从 GitHub 自动加载最新数据');
+        if (!res.sha || !res.content) return;
+
+        var storedSha = localStorage.getItem(SHA_KEY);
+        if (storedSha === res.sha) {
+          if (!isPoll) console.log('[GY] 数据已是最新');
+          return;
+        }
+
+        // GitHub 有新数据，下载并更新
+        console.log('[GY] 检测到 GitHub 数据更新');
+        var jsonStr = decodeURIComponent(escape(atob(res.content)));
+        var newData = JSON.parse(jsonStr);
+
+        if (newData && newData.meta && newData.storeData) {
+          localStorage.setItem(DATA_KEY, jsonStr);
+          localStorage.setItem(SHA_KEY, res.sha);
+          console.log('[GY] 已从 GitHub 加载最新数据：' + newData.meta.month + '月，' + newData.storeData.length + ' 家门店');
+
+          // 刷新页面以使用新数据（确保 React 完整重渲染）
+          if (isPoll) {
+            location.reload();
+          } else {
+            window.dispatchEvent(new CustomEvent('gy-data-updated', { detail: newData }));
           }
         }
       } catch(e) {
-        console.warn('[GY] 自动加载失败:', e.message);
+        console.warn('[GY] GitHub 数据加载失败:', e.message);
       }
     };
     xhr.send();
+  }
+
+  function autoLoadFromGitHub() {
+    checkGitHubUpdate(false);
+    // 每 2 分钟检查一次更新
+    setInterval(function() { checkGitHubUpdate(true); }, 120000);
   }
 
   // ─── 非拥有者到此为止 ──────────────────────────────────────────────────
@@ -5966,8 +5986,21 @@ root.render(React.createElement(Dashboard));
           pf.style.width = '100%';
           pt.textContent = '同步完成！';
           var csha = res.data.commit ? res.data.commit.sha.slice(0, 7) : '';
-          showMsg('\u2705 同步成功！' + csha + ' 查看者刷新即可看到最新数据', 'ok');
+          showMsg('\u2705 同步成功！' + csha + ' 所有人刷新页面即可看到最新数据', 'ok');
           updateDataStatus();
+
+          // 获取上传后的文件 SHA 并保存，用于下次页面加载时比对
+          var token = localStorage.getItem(TOKEN_KEY);
+          if (token) {
+            apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH, token)
+              .then(function(gRes) {
+                if (gRes.status === 200 && gRes.data.sha) {
+                  localStorage.setItem('gy_last_sha', gRes.data.sha);
+                  console.log('[GY] 已更新 SHA:', gRes.data.sha.slice(0, 7));
+                }
+              });
+          }
+
           setTimeout(function(){ pw.classList.remove('show'); pf.style.width = '0%'; }, 3000);
         } else {
           throw new Error(res.data.message || 'HTTP ' + res.status);
