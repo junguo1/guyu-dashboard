@@ -291,6 +291,126 @@ tr.summary-row td{background:#EEF2FF !important;font-weight:700;border-bottom:2p
 .gy-error-item .err-fix{color:#059669;font-weight:500}
 .gy-error-badge{position:fixed;bottom:1rem;right:1rem;background:#dc2626;color:#fff;border-radius:50%;width:36px;height:36px;display:none;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;cursor:pointer;z-index:99997;box-shadow:0 4px 12px rgba(220,38,38,.3)}
 .gy-error-badge.show{display:flex}
+
+/* ============ MOBILE RESPONSIVE ENHANCEMENTS ============ */
+@media(max-width:768px){
+  /* 驾驶舱卡片 */
+  .cockpit{grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0 14px}
+  .cockpit-card{padding:12px 14px;border-radius:10px}
+  .cockpit-card .cp-value{font-size:20px}
+  .cockpit-card .cp-label{font-size:11px}
+  .cockpit-card .cp-sub{font-size:10px}
+  .cockpit-card .cp-alert{font-size:10px}
+
+  /* 子标签栏 - 横向滚动 */
+  .sub-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;gap:0;white-space:nowrap}
+  .sub-tabs::-webkit-scrollbar{display:none}
+  .sub-tab{padding:8px 14px;font-size:12px;flex-shrink:0}
+
+  /* 主标签栏 - 横向滚动 */
+  .tab-bar{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tab-bar::-webkit-scrollbar{display:none}
+  .tab-btn{padding:8px 16px;font-size:13px;flex-shrink:0}
+
+  /* 提成KPI */
+  .comm-kpi-row{grid-template-columns:repeat(2,1fr);gap:8px}
+  .comm-kpi{padding:12px;border-radius:10px}
+  .comm-kpi .value{font-size:18px}
+  .comm-kpi .label{font-size:11px}
+  .comm-table{font-size:11px}
+  .comm-table th{padding:8px 6px;font-size:10px}
+  .comm-table td{padding:6px}
+
+  /* 注入按钮（同步/分享/模板） */
+  .header-actions{flex-wrap:wrap;gap:6px}
+  .btn-sync,.btn-share,.btn-tpl{padding:6px 10px !important;font-size:11px !important;border-radius:6px !important}
+
+  /* 弹窗面板 */
+  .gy-modal{padding:1.2rem 1rem;border-radius:12px;width:95%}
+  .gy-modal h3{font-size:1rem}
+  .gy-modal>p{font-size:.8rem;margin-bottom:1rem}
+  .gy-input{padding:.6rem .8rem;font-size:.85rem}
+  .gy-btn{padding:.7rem;font-size:.9rem}
+
+  /* 错误面板 */
+  .gy-error-panel{width:calc(100vw - 2rem);right:1rem;left:1rem;bottom:.5rem;max-height:45vh}
+
+  /* 进度区域 */
+  .progress-section{margin-bottom:10px}
+  .progress-card{padding:12px 14px;border-radius:10px}
+  .progress-warning{padding:10px 12px;font-size:11px}
+  .progress-store-tag{font-size:10px !important;padding:2px 6px !important}
+
+  /* 分析文案 */
+  .analysis{padding:10px 14px;font-size:11px;line-height:1.7;border-radius:10px}
+  .analysis strong{font-size:12px}
+
+  /* 图表区高度适配 */
+  .recharts-responsive-container{min-height:220px !important}
+}
+
+@media(max-width:480px){
+  /* 驾驶舱卡片 - 小屏单列或两列紧凑 */
+  .cockpit{grid-template-columns:repeat(2,1fr);gap:6px;margin:8px 0 10px}
+  .cockpit-card{padding:10px 12px;border-radius:8px}
+  .cockpit-card .cp-value{font-size:17px}
+  .cockpit-card .cp-label{font-size:10px}
+  .cockpit-card .cp-sub{font-size:9px}
+  .cockpit-card .cp-alert{font-size:9px}
+
+  /* 子标签 */
+  .sub-tab{padding:7px 10px;font-size:11px}
+  .tab-btn{padding:7px 12px;font-size:12px}
+
+  /* 提成KPI */
+  .comm-kpi-row{grid-template-columns:1fr 1fr;gap:6px}
+  .comm-kpi{padding:10px 8px}
+  .comm-kpi .value{font-size:16px}
+
+  /* 按钮更紧凑 */
+  .header-actions{gap:4px}
+  .btn-sync,.btn-share,.btn-tpl{padding:5px 8px !important;font-size:10px !important}
+  .btn{padding:6px 10px !important;font-size:11px !important}
+
+  /* 弹窗 */
+  .gy-modal{padding:1rem .8rem;width:98%;border-radius:10px}
+  .gy-close{top:.5rem;right:.5rem;font-size:1.2rem}
+  .gy-input{padding:.5rem .7rem;font-size:.82rem;margin-bottom:.6rem}
+  .gy-btn{padding:.65rem;font-size:.85rem;border-radius:8px}
+
+  /* 错误面板 */
+  .gy-error-panel{width:calc(100vw - 1rem);right:.5rem;left:.5rem;bottom:.5rem;max-height:50vh;border-radius:10px}
+  .gy-error-badge{width:32px;height:32px;font-size:.78rem;bottom:.5rem;right:.5rem}
+
+  /* 图表 */
+  .chart-box{padding:8px 6px !important}
+  .recharts-responsive-container{min-height:200px !important}
+  .recharts-text{font-size:9px !important}
+}
+
+@media(max-width:360px){
+  .app{padding:6px}
+  .header h1{font-size:14px}
+  .header .sub{font-size:10px}
+  .cockpit{grid-template-columns:1fr 1fr;gap:4px}
+  .cockpit-card{padding:8px 10px}
+  .cockpit-card .cp-value{font-size:15px}
+  .card{padding:6px 8px !important}
+  .card .value{font-size:14px !important}
+  .card .label{font-size:9px !important}
+  .sub-tab{padding:6px 8px;font-size:10px}
+  .tab-btn{padding:6px 10px;font-size:11px}
+}
+
+/* ============ TOUCH INTERACTION ENHANCEMENTS ============ */
+@media(hover:none) and (pointer:coarse){
+  .btn,.tab-btn,.sub-tab,.gy-btn,.gy-close,.filter-select{min-height:44px}
+  .tab-btn,.sub-tab{padding-top:10px;padding-bottom:10px}
+  table td,table th{padding-top:8px;padding-bottom:8px}
+  .gy-input{min-height:44px;font-size:16px !important}
+  .filter-select{font-size:16px !important}
+  .multi-select{font-size:16px !important}
+}
 </style>
 
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -5532,7 +5652,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = '5f2d9c65a69daa2f03cd8542c3514372ed660b09';
+  var BUILD_VERSION = '9295b2f96fb96314fc8cb519773752ad5f2d48a4';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
