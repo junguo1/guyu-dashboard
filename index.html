@@ -5555,44 +5555,123 @@ root.render(React.createElement(Dashboard));
   var _OrigReadAsAB = _OrigFileReader.prototype.readAsArrayBuffer;
   var _OrigReadAsBS = _OrigFileReader.prototype.readAsBinaryString;
 
+  // ─── 进度条 UI ──────────────────────────────────────────────────────────
+  var progressPanel = document.createElement('div');
+  progressPanel.id = 'gy-ip';
+  progressPanel.style.cssText = 'position:fixed;top:0;left:0;width:100%;z-index:99999;display:none;';
+  progressPanel.innerHTML = '<div style="background:#fff;padding:12px 20px;box-shadow:0 4px 15px rgba(0,0,0,.12);border-bottom:2px solid #2563eb">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">' +
+    '<span id="gy-ip-step" style="font-size:.88rem;font-weight:600;color:#1a1a1a">准备导入...</span>' +
+    '<span id="gy-ip-pct" style="font-size:.88rem;font-weight:700;color:#2563eb">0%</span></div>' +
+    '<div style="height:5px;background:#e2e8f0;border-radius:5px;overflow:hidden">' +
+    '<div id="gy-ip-bar" style="height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);width:0%;transition:width .3s;border-radius:5px"></div></div></div>';
+  document.body.appendChild(progressPanel);
+
+  function showProgress(step, pct) {
+    progressPanel.style.display = 'block';
+    document.getElementById('gy-ip-step').textContent = step;
+    document.getElementById('gy-ip-pct').textContent = Math.round(pct) + '%';
+    document.getElementById('gy-ip-bar').style.width = pct + '%';
+  }
+  function hideProgress() {
+    setTimeout(function() { progressPanel.style.display = 'none'; }, 1500);
+  }
+
+  // ─── 异步 base64 转换（不阻塞主线程）────────────────────────────────
+  function asyncToBase64(bytes, callback) {
+    var chunkSize = 32768;
+    var chunks = [];
+    var i = 0;
+    function processChunk() {
+      var end = Math.min(i + chunkSize, bytes.length);
+      chunks.push(String.fromCharCode.apply(null, bytes.subarray(i, end)));
+      i = end;
+      if (i < bytes.length) {
+        setTimeout(processChunk, 0);
+      } else {
+        try { callback(btoa(chunks.join(''))); } catch(e) { callback(null); }
+      }
+    }
+    processChunk();
+  }
+
+  // ─── 优化的 FileReader 拦截（单次读取）─────────────────────────────
   _OrigFileReader.prototype.readAsArrayBuffer = function(file) {
     if (file && /\.(xlsx|xls)$/i.test(file.name)) {
-      var r = new _OrigFileReader();
-      r.onload = function() {
+      showProgress('读取文件...', 5);
+      var origOnload = this.onload;
+      var origOnerror = this.onerror;
+      var self = this;
+
+      this.onload = function(e) {
+        showProgress('解析 Excel 中...', 20);
+        // 先执行原始处理（XLSX 解析）
+        if (origOnload) origOnload.call(self, e);
+        // 异步捕获 base64（不阻塞主流程）
         try {
-          var bytes = new Uint8Array(r.result);
-          var binary = '';
-          var chunkSize = 8192;
-          for (var i = 0; i < bytes.length; i += chunkSize) {
-            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
-          }
-          capturedExcelB64 = btoa(binary);
-          try {
-            if (capturedExcelB64.length < MAX_STORAGE) {
-              localStorage.setItem(FILE_KEY, capturedExcelB64);
+          var bytes = new Uint8Array(e.target.result);
+          asyncToBase64(bytes, function(b64) {
+            if (b64) {
+              capturedExcelB64 = b64;
+              try {
+                if (b64.length < MAX_STORAGE) localStorage.setItem(FILE_KEY, b64);
+              } catch(e) {}
             }
-          } catch(e) { console.warn('[GY] Excel 文件过大，未缓存到 localStorage'); }
+          });
         } catch(e) {}
+
+        // 监听数据处理完成（通过 processExcelWorkbook 的包装）
+        var checkDone = setInterval(function() {
+          if (window._gyImportDone) {
+            clearInterval(checkDone);
+            if (window._gyImportSuccess) {
+              showProgress('\u2705 导入完成！', 100);
+            } else {
+              showProgress('\u274C 导入失败', 100);
+            }
+            hideProgress();
+            window._gyImportDone = false;
+            window._gyImportSuccess = false;
+          }
+        }, 200);
       };
-      r.readAsArrayBuffer(file);
+
+      this.onerror = function(e) {
+        if (origOnerror) origOnerror.call(self, e);
+        showProgress('\u274C 文件读取失败', 100);
+        hideProgress();
+      };
     }
     return _OrigReadAsAB.call(this, file);
   };
 
   _OrigFileReader.prototype.readAsBinaryString = function(file) {
     if (file && /\.(xlsx|xls)$/i.test(file.name)) {
-      var r = new _OrigFileReader();
-      r.onload = function() {
+      showProgress('读取文件...', 5);
+      var origOnload = this.onload;
+      var self = this;
+      this.onload = function(e) {
+        showProgress('解析 Excel 中...', 20);
+        if (origOnload) origOnload.call(self, e);
         try {
-          capturedExcelB64 = btoa(unescape(encodeURIComponent(r.result)));
-          try {
-            if (capturedExcelB64.length < MAX_STORAGE) {
-              localStorage.setItem(FILE_KEY, capturedExcelB64);
-            }
-          } catch(e) {}
+          var result = e.target.result;
+          setTimeout(function() {
+            try {
+              capturedExcelB64 = btoa(unescape(encodeURIComponent(result)));
+              if (capturedExcelB64.length < MAX_STORAGE) localStorage.setItem(FILE_KEY, capturedExcelB64);
+            } catch(e) {}
+          }, 0);
         } catch(e) {}
+        var checkDone = setInterval(function() {
+          if (window._gyImportDone) {
+            clearInterval(checkDone);
+            showProgress(window._gyImportSuccess ? '\u2705 导入完成！' : '\u274C 导入失败', 100);
+            hideProgress();
+            window._gyImportDone = false;
+            window._gyImportSuccess = false;
+          }
+        }, 200);
       };
-      r.readAsBinaryString(file);
     }
     return _OrigReadAsBS.call(this, file);
   };
@@ -5605,6 +5684,7 @@ root.render(React.createElement(Dashboard));
     }
     var origFn = window.processExcelWorkbook;
     window.processExcelWorkbook = function(wb) {
+      showProgress('处理数据中...', 60);
       var result;
       try {
         result = origFn(wb);
@@ -5614,18 +5694,23 @@ root.render(React.createElement(Dashboard));
           e.message,
           getErrorFix('process_error', e.message)
         );
+        window._gyImportDone = true;
+        window._gyImportSuccess = false;
         throw e;
       }
+      showProgress('保存数据...', 90);
       if (result && result.meta && result.storeData) {
         try {
           var json = JSON.stringify(result);
           if (json.length < MAX_STORAGE) {
             localStorage.setItem(DATA_KEY, json);
-            console.log('[GY] 数据已持久化到 localStorage (' + (json.length / 1024).toFixed(0) + ' KB)');
+            console.log('[GY] 数据已持久化 (' + (json.length / 1024).toFixed(0) + ' KB)');
           }
         } catch(e) {
-          console.warn('[GY] 持久化失败 (数据过大?):', e.message);
+          console.warn('[GY] 持久化失败:', e.message);
         }
+        window._gyImportDone = true;
+        window._gyImportSuccess = true;
       }
       return result;
     };
