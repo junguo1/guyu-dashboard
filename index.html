@@ -5514,7 +5514,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = 'c01e109adb6b2e1eff090f05ab7b43aa14e273b3';
+  var BUILD_VERSION = '06b3802c9ff8ce59a25fd362b5714a4159215e63';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -5611,14 +5611,16 @@ root.render(React.createElement(Dashboard));
           });
         } catch(ex) {}
 
-        // 监听数据处理完成
+        // 监听数据处理完成（最多等待 60 秒）
+        var checkCount = 0;
         var checkDone = setInterval(function() {
-          if (window._gyImportDone) {
+          checkCount++;
+          if (window._gyImportDone || checkCount > 300) {
             clearInterval(checkDone);
             if (window._gyImportSuccess) {
               showProgress('\u2705 导入完成！可点击"同步数据"推送到线上', 100);
             } else {
-              showProgress('\u274C 导入失败', 100);
+              showProgress(checkCount > 300 ? '\u26A0\uFE0F 导入超时' : '\u274C 导入失败', 100);
             }
             hideProgress();
             window._gyImportDone = false;
@@ -5653,10 +5655,12 @@ root.render(React.createElement(Dashboard));
             } catch(ex) {}
           }, 0);
         } catch(ex) {}
+        var checkCount2 = 0;
         var checkDone = setInterval(function() {
-          if (window._gyImportDone) {
+          checkCount2++;
+          if (window._gyImportDone || checkCount2 > 300) {
             clearInterval(checkDone);
-            showProgress(window._gyImportSuccess ? '\u2705 导入完成！' : '\u274C 导入失败', 100);
+            showProgress(window._gyImportSuccess ? '\u2705 导入完成！' : (checkCount2 > 300 ? '\u26A0\uFE0F 导入超时' : '\u274C 导入失败'), 100);
             hideProgress();
             window._gyImportDone = false;
             window._gyImportSuccess = false;
@@ -5698,6 +5702,10 @@ root.render(React.createElement(Dashboard));
         }
         window._gyImportDone = true;
         window._gyImportSuccess = true;
+      } else {
+        // 结果不符合预期，也标记完成以终止轮询
+        window._gyImportDone = true;
+        window._gyImportSuccess = false;
       }
       return result;
     };
@@ -5719,9 +5727,14 @@ root.render(React.createElement(Dashboard));
   var SHA_KEY = 'gy_last_sha';
 
   function checkGitHubUpdate(isPoll) {
+    // 使用 token（如有）避免 GitHub API 频率限制
+    var token = localStorage.getItem(TOKEN_KEY) || null;
+
     var xhr = new XMLHttpRequest();
     xhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH);
     xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+    if (token) xhr.setRequestHeader('Authorization', 'token ' + sanitizeToken(token));
+    xhr.timeout = 10000;
     xhr.onload = function() {
       if (xhr.status !== 200) return;
       try {
@@ -5738,8 +5751,8 @@ root.render(React.createElement(Dashboard));
             localStorage.setItem(DATA_KEY, jsonStr);
             localStorage.setItem(SHA_KEY, res.sha);
             console.log('[GY] 已加载最新数据：' + newData.meta.month + '月，' + newData.storeData.length + ' 家门店');
-            if (isPoll) location.reload();
-            else window.dispatchEvent(new CustomEvent('gy-data-updated', { detail: newData }));
+            // 始终用 reload 确保 HTML 结构更新也能生效
+            location.reload();
           }
         } else if (!isPoll) {
           console.log('[GY] 数据已是最新');
@@ -5748,35 +5761,21 @@ root.render(React.createElement(Dashboard));
         console.warn('[GY] 数据加载失败:', e.message);
       }
     };
+    xhr.onerror = function() { console.warn('[GY] 网络错误'); };
+    xhr.ontimeout = function() { console.warn('[GY] 请求超时'); };
     xhr.send();
-
-    // 同时检查 HTML 是否有结构更新（看板模块变动）
-    if (BUILD_VERSION && BUILD_VERSION !== '__BUILD_VERSION__') {
-      var xhr2 = new XMLHttpRequest();
-      xhr2.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/index.html?ref=' + GH_BRANCH);
-      xhr2.setRequestHeader('Accept', 'application/vnd.github.v3+json');
-      xhr2.onload = function() {
-        if (xhr2.status !== 200) return;
-        try {
-          var res2 = JSON.parse(xhr2.responseText);
-          if (res2.sha && res2.sha !== BUILD_VERSION) {
-            console.log('[GY] 检测到看板结构更新，刷新页面...');
-            var storedHtmlSha = localStorage.getItem('gy_html_sha');
-            if (storedHtmlSha !== res2.sha) {
-              localStorage.setItem('gy_html_sha', res2.sha);
-              location.reload();
-            }
-          }
-        } catch(e) {}
-      };
-      xhr2.send();
-    }
   }
 
   function autoLoadFromGitHub() {
     checkGitHubUpdate(false);
     // 每 2 分钟检查一次更新
     setInterval(function() { checkGitHubUpdate(true); }, 120000);
+  }
+
+  // ─── Token 清理（移除不可见字符和非 ASCII 字符）────────────────────────
+  function sanitizeToken(raw) {
+    // 先去掉常见不可见字符（零宽空格、全角空格等）
+    return raw.replace(/[^\x20-\x7E]/g, '').replace(/\s+/g, '').trim();
   }
 
   // ─── 非拥有者到此为止 ──────────────────────────────────────────────────
@@ -5835,7 +5834,17 @@ root.render(React.createElement(Dashboard));
   }
 
   injectButtons();
-  var observer = new MutationObserver(function() { injectButtons(); });
+  var _injectScheduled = false;
+  var observer = new MutationObserver(function() {
+    if (!_injectScheduled) {
+      _injectScheduled = true;
+      requestAnimationFrame(function() {
+        injectButtons();
+        injectTemplateBtn();
+        _injectScheduled = false;
+      });
+    }
+  });
   observer.observe(document.body, { childList: true, subtree: true });
 
   // ─── 下载导入模板 ──────────────────────────────────────────────────────
@@ -5925,12 +5934,22 @@ root.render(React.createElement(Dashboard));
       showMsg('请先通过"导入数据"按钮导入 Excel 文件', 'err');
       return;
     }
-    var token = localStorage.getItem(TOKEN_KEY);
-    if (!token) {
+    var rawToken = localStorage.getItem(TOKEN_KEY);
+    if (!rawToken) {
       hideOverlay('sync');
       showOverlay('token');
       return;
     }
+    var token = sanitizeToken(rawToken);
+    if (!token || token.length < 10) {
+      // Token 已失效，要求重新输入
+      localStorage.removeItem(TOKEN_KEY);
+      hideOverlay('sync');
+      showOverlay('token');
+      return;
+    }
+    // 回写清理后的 token
+    if (token !== rawToken) localStorage.setItem(TOKEN_KEY, token);
     doSync(token);
   });
 
@@ -5955,9 +5974,14 @@ root.render(React.createElement(Dashboard));
   // ─── Token 提交 ────────────────────────────────────────────────────────
   document.getElementById('gy-tkb').addEventListener('click', function() {
     var input = document.getElementById('gy-tki');
-    var token = input.value.trim();
+    var token = sanitizeToken(input.value);
     if (!token) { showTokenMsg('请输入 Token', 'err'); return; }
+    if (token.length < 10 || token.indexOf('ghp_') !== 0) {
+      showTokenMsg('Token 格式不正确，应以 ghp_ 开头', 'err');
+      return;
+    }
     localStorage.setItem(TOKEN_KEY, token);
+    input.value = '';
     hideOverlay('token');
     showOverlay('sync');
     doSync(token);
@@ -5977,6 +6001,16 @@ root.render(React.createElement(Dashboard));
     pf.style.width = '10%';
     pt.textContent = '准备数据...';
 
+    // 清理 token（防止 setRequestHeader 编码错误）
+    token = sanitizeToken(token);
+    if (!token || token.length < 10) {
+      showMsg('\u274C Token 无效，请点击"修改 Token"重新输入', 'err');
+      tklEl.style.display = 'inline-block';
+      sb.disabled = false; sb.textContent = '\u{1F504} 一键同步';
+      pw.classList.remove('show');
+      return;
+    }
+
     // 读取当前缓存数据
     var dataJson = localStorage.getItem(DATA_KEY);
     if (!dataJson) {
@@ -5992,10 +6026,13 @@ root.render(React.createElement(Dashboard));
     // 将数据 JSON 编码为 base64 上传
     var b64 = btoa(unescape(encodeURIComponent(dataJson)));
 
-    apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH, token)
+    // 使用 Promise.resolve().then() 确保同步错误也被 catch 捕获
+    Promise.resolve().then(function() {
+      return apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH, token);
+    })
       .then(function(res) {
         var sha = (res.status === 200 && res.data.sha) ? res.data.sha : null;
-        var body = { message: '同步数据 - ' + new Date().toLocaleString('zh-CN'), content: b64, branch: GH_BRANCH };
+        var body = { message: 'sync data ' + new Date().toISOString().slice(0, 19), content: b64, branch: GH_BRANCH };
         if (sha) body.sha = sha;
         pf.style.width = '50%';
         pt.textContent = '上传数据...';
@@ -6009,28 +6046,32 @@ root.render(React.createElement(Dashboard));
           showMsg('\u2705 同步成功！' + csha + ' 所有人刷新页面即可看到最新数据', 'ok');
           updateDataStatus();
 
-          // 获取上传后的文件 SHA 并保存，用于下次页面加载时比对
-          var token = localStorage.getItem(TOKEN_KEY);
-          if (token) {
-            apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH, token)
-              .then(function(gRes) {
-                if (gRes.status === 200 && gRes.data.sha) {
-                  localStorage.setItem('gy_last_sha', gRes.data.sha);
-                  console.log('[GY] 已更新 SHA:', gRes.data.sha.slice(0, 7));
-                }
-              });
-          }
+          // 获取上传后的文件 SHA 并保存
+          apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH, token)
+            .then(function(gRes) {
+              if (gRes.status === 200 && gRes.data.sha) {
+                localStorage.setItem('gy_last_sha', gRes.data.sha);
+              }
+            }).catch(function(){});
 
           setTimeout(function(){ pw.classList.remove('show'); pf.style.width = '0%'; }, 3000);
         } else {
-          throw new Error(res.data.message || 'HTTP ' + res.status);
+          var errMsg = (res.data && res.data.message) ? res.data.message : ('HTTP ' + res.status);
+          throw new Error(errMsg);
         }
       })
       .catch(function(err) {
-        showMsg('\u274C ' + err.message, 'err');
-        if (err.message.indexOf('Bad credentials') >= 0) {
+        var msg = err.message || '未知错误';
+        if (msg.indexOf('Bad credentials') >= 0 || msg.indexOf('401') >= 0) {
           showMsg('\u274C Token 无效，请点击"修改 Token"重新输入', 'err');
           tklEl.style.display = 'inline-block';
+        } else if (msg.indexOf('non ISO-8859-1') >= 0 || msg.indexOf('code point') >= 0) {
+          showMsg('\u274C Token 包含非法字符，请点击"修改 Token"重新输入', 'err');
+          tklEl.style.display = 'inline-block';
+        } else if (msg.indexOf('network') >= 0 || msg.indexOf('Network') >= 0 || msg.indexOf('网络') >= 0) {
+          showMsg('\u274C 网络错误，请检查网络连接', 'err');
+        } else {
+          showMsg('\u274C ' + msg, 'err');
         }
         pw.classList.remove('show');
       })
@@ -6064,14 +6105,16 @@ root.render(React.createElement(Dashboard));
     return new Promise(function(resolve, reject) {
       var xhr = new XMLHttpRequest();
       xhr.open(method, 'https://api.github.com' + path);
-      xhr.setRequestHeader('Authorization', 'token ' + token);
+      xhr.setRequestHeader('Authorization', 'token ' + sanitizeToken(token));
       xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
       if (body) xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.timeout = 30000; // 30 秒超时
       xhr.onload = function() {
         try { resolve({ status: xhr.status, data: JSON.parse(xhr.responseText) }); }
         catch(e) { resolve({ status: xhr.status, data: {} }); }
       };
-      xhr.onerror = function() { reject(new Error('网络错误')); };
+      xhr.onerror = function() { reject(new Error('网络错误，请检查网络连接')); };
+      xhr.ontimeout = function() { reject(new Error('请求超时，请稍后重试')); };
       xhr.send(body ? JSON.stringify(body) : null);
     });
   }
@@ -6172,8 +6215,6 @@ root.render(React.createElement(Dashboard));
       }
     }
   }
-  var tplObserver = new MutationObserver(function() { injectTemplateBtn(); });
-  tplObserver.observe(document.body, { childList: true, subtree: true });
 
 })();
 </script>
