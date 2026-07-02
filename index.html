@@ -251,6 +251,8 @@ tr.summary-row td{background:#EEF2FF !important;font-weight:700;border-bottom:2p
 .btn-sync:hover{background:#B91C1C}
 .btn-share{background:transparent;color:#DC2626;border:1px solid #DC2626}
 .btn-share:hover{background:#FEF2F2}
+.btn-tpl{background:transparent;color:#059669;border:1px solid #059669}
+.btn-tpl:hover{background:#ECFDF5}
 .gy-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 .gy-overlay.show{opacity:1;pointer-events:all}
 .gy-modal{background:#fff;border-radius:16px;padding:2rem;width:92%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.2);transform:translateY(20px);transition:transform .2s;position:relative;max-height:85vh;overflow-y:auto}
@@ -261,21 +263,6 @@ tr.summary-row td{background:#EEF2FF !important;font-weight:700;border-bottom:2p
 .gy-close:hover{background:#f1f5f9;color:#374151}
 .gy-input{width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;outline:none;margin-bottom:.8rem}
 .gy-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-.gy-drop{border:2px dashed #d1d5db;border-radius:12px;padding:1.8rem 1.5rem;text-align:center;cursor:pointer;transition:all .2s;background:#fafbfc;margin-bottom:1rem}
-.gy-drop:hover,.gy-drop.dragover{border-color:#2563eb;background:#eff6ff}
-.gy-drop .gy-icon{font-size:2rem;margin-bottom:.4rem}
-.gy-drop p{color:#64748b;font-size:.88rem;margin:0}
-.gy-file{display:none;align-items:center;gap:.8rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:.7rem 1rem;margin-bottom:1rem}
-.gy-file.show{display:flex}
-.gy-fname{font-weight:600;font-size:.86rem;color:#1e40af}
-.gy-fsize{font-size:.76rem;color:#64748b}
-.gy-fremove{margin-left:auto;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.1rem;padding:.2rem .4rem;border-radius:6px}
-.gy-fremove:hover{color:#ef4444;background:#fef2f2}
-.gy-progress{display:none;margin-bottom:.8rem}
-.gy-progress.show{display:block}
-.gy-pbar{height:6px;background:#e2e8f0;border-radius:6px;overflow:hidden}
-.gy-pfill{height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);width:0%;transition:width .3s;border-radius:6px}
-.gy-ptext{font-size:.76rem;color:#64748b;margin-top:.3rem;text-align:center}
 .gy-btn{display:flex;align-items:center;justify-content:center;gap:.5rem;width:100%;padding:.8rem;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:.95rem;font-weight:600;transition:all .2s;box-shadow:0 4px 14px rgba(37,99,235,.25)}
 .gy-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(37,99,235,.3)}
 .gy-btn:disabled{background:#cbd5e1;cursor:not-allowed;box-shadow:none;transform:none}
@@ -283,17 +270,26 @@ tr.summary-row td{background:#EEF2FF !important;font-weight:700;border-bottom:2p
 .gy-msg.show{display:flex}
 .gy-msg.ok{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
 .gy-msg.err{background:#fef2f2;color:#991b1b;border:1px solid #fecaca}
-.gy-share-url{display:flex;gap:.5rem;margin-bottom:1rem}
-.gy-share-url input{flex:1;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.82rem;font-family:monospace;color:#334155;outline:none;background:#f8fafc}
-.gy-copy-btn{padding:.7rem 1.2rem;background:#e2e8f0;border:none;cursor:pointer;font-size:.86rem;color:#475569;border-radius:10px;font-weight:500;white-space:nowrap}
-.gy-copy-btn:hover{background:#cbd5e1}
-.gy-copy-btn.copied{background:#059669;color:#fff}
-.gy-toggle-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.8rem}
-.gy-toggle-row input[type=checkbox]{accent-color:#2563eb}
-.gy-toggle-row label{font-size:.82rem;color:#64748b;cursor:pointer}
+.gy-progress{display:none;margin:.8rem 0}
+.gy-progress.show{display:block}
+.gy-pbar{height:6px;background:#e2e8f0;border-radius:6px;overflow:hidden}
+.gy-pfill{height:100%;background:linear-gradient(90deg,#2563eb,#7c3aed);width:0%;transition:width .3s;border-radius:6px}
+.gy-ptext{font-size:.76rem;color:#64748b;margin-top:.3rem;text-align:center}
 .gy-data-status{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.6rem 1rem;margin-bottom:1rem;font-size:.82rem;color:#166534;display:none}
 .gy-data-status.show{display:block}
 .gy-data-status.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.gy-share-item{display:flex;align-items:center;gap:.5rem;padding:.65rem .8rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:.5rem;font-size:.82rem}
+.gy-share-item .gy-sid{font-weight:600;color:#1e40af;min-width:70px}
+.gy-share-item .gy-surl{flex:1;color:#64748b;font-family:monospace;font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gy-share-item button{background:none;border:none;cursor:pointer;padding:.2rem .5rem;border-radius:6px;font-size:.82rem}
+.gy-share-item .gy-scopy{color:#2563eb}
+.gy-share-item .gy-scopy:hover{background:#eff6ff}
+.gy-share-item .gy-stoggle{color:#059669;font-size:.76rem;padding:.15rem .5rem;border:1px solid #d1d5db;border-radius:6px}
+.gy-share-item .gy-stoggle.on{background:#ecfdf5;border-color:#059669}
+.gy-share-item .gy-sdel{color:#ef4444}
+.gy-share-item .gy-sdel:hover{background:#fef2f2}
+.gy-token-link{display:inline-block;font-size:.78rem;color:#2563eb;cursor:pointer;margin-top:.6rem;text-decoration:underline}
+.gy-token-link:hover{color:#1d4ed8}
 .gy-error-panel{position:fixed;bottom:1rem;right:1rem;width:380px;max-height:300px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);z-index:99998;display:none;flex-direction:column;overflow:hidden}
 .gy-error-panel.show{display:flex}
 .gy-error-header{padding:.8rem 1rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#fef2f2}
@@ -5522,38 +5518,32 @@ root.render(React.createElement(Dashboard));
   var OWNER_KEY = 'guyu_dashboard_owner';
   var TOKEN_KEY = 'guyu_dashboard_token';
   var DATA_KEY = 'gy_dashboard_data';
-  var FILE_KEY = 'gy_excel_b64';
   var ERRORS_KEY = 'gy_errors';
-  var MAX_STORAGE = 4.5 * 1024 * 1024; // 4.5MB safe limit
+  var MAX_STORAGE = 4.5 * 1024 * 1024;
 
-  // ─── 权限 ───────────────────────────────────────────────────────────────
+  // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
+  var isOwner = false;
+  var shareId = params.get('id') || null;
+
   if (params.get('owner') === '1') {
     localStorage.setItem(OWNER_KEY, '1');
-    localStorage.setItem('gy_owner', '1'); // 同时写 v2 key
     history.replaceState({}, '', location.origin + location.pathname);
     console.log('[GY] Owner 模式已激活');
   }
-  var isOwner = localStorage.getItem(OWNER_KEY) === '1' || localStorage.getItem('gy_owner') === '1';
-  console.log('[GY] isOwner:', isOwner, '| key:', OWNER_KEY, '=', localStorage.getItem(OWNER_KEY));
+  isOwner = localStorage.getItem(OWNER_KEY) === '1';
+  console.log('[GY] isOwner:', isOwner, '| shareId:', shareId);
 
   // ─── 错误日志系统 ───────────────────────────────────────────────────────
   var errorLogs = [];
   try { errorLogs = JSON.parse(localStorage.getItem(ERRORS_KEY) || '[]'); } catch(e){}
+
   function addError(title, detail, fix) {
     errorLogs.unshift({ time: new Date().toLocaleString('zh-CN'), title: title, detail: detail || '', fix: fix || '' });
     if (errorLogs.length > 50) errorLogs = errorLogs.slice(0, 50);
     try { localStorage.setItem(ERRORS_KEY, JSON.stringify(errorLogs)); } catch(e){}
     renderErrors();
   }
-
-  // ─── 文件捕获 (拦截 FileReader) ────────────────────────────────────────
-  var capturedExcelB64 = null;
-  try { capturedExcelB64 = localStorage.getItem(FILE_KEY); } catch(e){}
-
-  var _OrigFileReader = window.FileReader;
-  var _OrigReadAsAB = _OrigFileReader.prototype.readAsArrayBuffer;
-  var _OrigReadAsBS = _OrigFileReader.prototype.readAsBinaryString;
 
   // ─── 进度条 UI ──────────────────────────────────────────────────────────
   var progressPanel = document.createElement('div');
@@ -5577,7 +5567,7 @@ root.render(React.createElement(Dashboard));
     setTimeout(function() { progressPanel.style.display = 'none'; }, 1500);
   }
 
-  // ─── 异步 base64 转换（不阻塞主线程）────────────────────────────────
+  // ─── 异步 base64 转换 ──────────────────────────────────────────────────
   function asyncToBase64(bytes, callback) {
     var chunkSize = 32768;
     var chunks = [];
@@ -5595,7 +5585,11 @@ root.render(React.createElement(Dashboard));
     processChunk();
   }
 
-  // ─── 优化的 FileReader 拦截（单次读取）─────────────────────────────
+  // ─── FileReader 拦截（v3: 先 clone ArrayBuffer，再调 origOnload）────────
+  var _OrigFileReader = window.FileReader;
+  var _OrigReadAsAB = _OrigFileReader.prototype.readAsArrayBuffer;
+  var _OrigReadAsBS = _OrigFileReader.prototype.readAsBinaryString;
+
   _OrigFileReader.prototype.readAsArrayBuffer = function(file) {
     if (file && /\.(xlsx|xls)$/i.test(file.name)) {
       showProgress('读取文件...', 5);
@@ -5604,28 +5598,31 @@ root.render(React.createElement(Dashboard));
       var self = this;
 
       this.onload = function(e) {
+        // ★ 关键修复：在原始 handler 消费 ArrayBuffer 之前先克隆
+        var bufferClone = e.target.result.slice(0);
         showProgress('解析 Excel 中...', 20);
-        // 先执行原始处理（XLSX 解析）
+
+        // 调用原始 onload（XLSX.read 可能消耗原始 buffer）
         if (origOnload) origOnload.call(self, e);
-        // 异步捕获 base64（不阻塞主流程）
+
+        // 异步 base64（使用克隆，不阻塞主解析流程）
         try {
-          var bytes = new Uint8Array(e.target.result);
+          var bytes = new Uint8Array(bufferClone);
           asyncToBase64(bytes, function(b64) {
             if (b64) {
-              capturedExcelB64 = b64;
               try {
-                if (b64.length < MAX_STORAGE) localStorage.setItem(FILE_KEY, b64);
-              } catch(e) {}
+                if (b64.length < MAX_STORAGE) localStorage.setItem('gy_excel_b64', b64);
+              } catch(ex) {}
             }
           });
-        } catch(e) {}
+        } catch(ex) {}
 
-        // 监听数据处理完成（通过 processExcelWorkbook 的包装）
+        // 监听数据处理完成
         var checkDone = setInterval(function() {
           if (window._gyImportDone) {
             clearInterval(checkDone);
             if (window._gyImportSuccess) {
-              showProgress('\u2705 导入完成！', 100);
+              showProgress('\u2705 导入完成！可点击"同步数据"推送到线上', 100);
             } else {
               showProgress('\u274C 导入失败', 100);
             }
@@ -5657,11 +5654,11 @@ root.render(React.createElement(Dashboard));
           var result = e.target.result;
           setTimeout(function() {
             try {
-              capturedExcelB64 = btoa(unescape(encodeURIComponent(result)));
-              if (capturedExcelB64.length < MAX_STORAGE) localStorage.setItem(FILE_KEY, capturedExcelB64);
-            } catch(e) {}
+              var b64 = btoa(unescape(encodeURIComponent(result)));
+              if (b64.length < MAX_STORAGE) localStorage.setItem('gy_excel_b64', b64);
+            } catch(ex) {}
           }, 0);
-        } catch(e) {}
+        } catch(ex) {}
         var checkDone = setInterval(function() {
           if (window._gyImportDone) {
             clearInterval(checkDone);
@@ -5676,7 +5673,7 @@ root.render(React.createElement(Dashboard));
     return _OrigReadAsBS.call(this, file);
   };
 
-  // ─── 包装 processExcelWorkbook (捕获处理结果 + 持久化) ─────────────────
+  // ─── 包装 processExcelWorkbook (捕获结果 + 持久化) ─────────────────────
   function wrapProcessor() {
     if (typeof window.processExcelWorkbook !== 'function') {
       setTimeout(wrapProcessor, 100);
@@ -5689,11 +5686,7 @@ root.render(React.createElement(Dashboard));
       try {
         result = origFn(wb);
       } catch(e) {
-        addError(
-          '数据处理出错',
-          e.message,
-          getErrorFix('process_error', e.message)
-        );
+        addError('数据处理出错', e.message, getErrorFix('process_error', e.message));
         window._gyImportDone = true;
         window._gyImportSuccess = false;
         throw e;
@@ -5720,109 +5713,215 @@ root.render(React.createElement(Dashboard));
   // ─── 错误修复建议 ───────────────────────────────────────────────────────
   function getErrorFix(type, msg) {
     if (!msg) return '请检查 Excel 文件格式是否正确';
-    if (msg.indexOf('Sheet') >= 0 || msg.indexOf('sheet') >= 0) return '请确认 Excel 中包含所需的 sheet 页签（会员明细、本月销售等），检查 sheet 名称是否有多余空格';
+    if (msg.indexOf('Sheet') >= 0 || msg.indexOf('sheet') >= 0) return '请确认 Excel 中包含所需的 sheet 页签，检查 sheet 名称是否有多余空格';
     if (msg.indexOf('col') >= 0 || msg.indexOf('列') >= 0) return '请检查 Excel 表头列名是否与模板一致，常见差异：常规柜台 vs 常规柜台指标';
     if (msg.indexOf('read') >= 0 || msg.indexOf('Read') >= 0) return '文件可能已损坏，请重新从系统导出 Excel 文件';
-    if (msg.indexOf('process') >= 0 || type === 'process_error') return '数据处理异常，请检查 Excel 数据是否有空行或格式异常，建议重新导出';
-    if (msg.indexOf('storage') >= 0 || msg.indexOf('quota') >= 0) return '浏览器存储空间不足，请清除浏览器缓存后重试';
-    return '建议：1) 检查 Excel 文件完整性 2) 确认使用最新模板 3) 如问题持续，请联系技术支持';
+    if (type === 'process_error') return '数据处理异常，请检查 Excel 数据是否有空行或格式异常';
+    if (msg.indexOf('storage') >= 0 || msg.indexOf('quota') >= 0) return '浏览器存储空间不足，请清除缓存后重试';
+    return '建议：1) 检查 Excel 文件完整性 2) 确认使用最新模板 3) 如问题持续请联系技术支持';
   }
 
-  // ─── 非拥有者到此为止 ──────────────────────────────────────────────────
-  if (!isOwner) {
-    // 非拥有者也自动加载 GitHub 上的数据
+  // ─── 自动从 GitHub 加载数据 ─────────────────────────────────────────────
+  function autoLoadFromGitHub() {
+    if (localStorage.getItem(DATA_KEY)) return;
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.xlsx?ref=' + GH_BRANCH);
+    xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+    xhr.onload = function() {
+      if (xhr.status !== 200) return;
+      try {
+        var res = JSON.parse(xhr.responseText);
+        if (!res.content) return;
+        var binary = atob(res.content);
+        var bytes = new Uint8Array(binary.length);
+        for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        var wb = XLSX.read(bytes, { type: 'array', cellDates: true });
+        if (typeof window.processExcelWorkbook === 'function') {
+          var data = window.processExcelWorkbook(wb);
+          if (data && data.meta && data.storeData) {
+            window.dispatchEvent(new CustomEvent('gy-data-updated', { detail: data }));
+            console.log('[GY] 已从 GitHub 自动加载最新数据');
+          }
+        }
+      } catch(e) {
+        console.warn('[GY] 自动加载失败:', e.message);
+      }
+    };
+    xhr.send();
+  }
+
+  // ─── 非拥有者（且非分享ID）到此为止 ─────────────────────────────────────
+  if (!isOwner && !shareId) {
     autoLoadFromGitHub();
     return;
   }
 
+  // ─── 分享 ID 用户：检查权限 ─────────────────────────────────────────────
+  var canSync = false;
+  if (shareId && !isOwner) {
+    var sxhr = new XMLHttpRequest();
+    sxhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/share-config.json?ref=' + GH_BRANCH);
+    sxhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+    sxhr.onload = function() {
+      if (sxhr.status !== 200) return;
+      try {
+        var res = JSON.parse(sxhr.responseText);
+        if (!res.content) return;
+        var cfg = JSON.parse(decodeURIComponent(escape(atob(res.content))));
+        if (cfg && cfg.shares && cfg.shares[shareId]) {
+          canSync = !!cfg.shares[shareId].canSync;
+          if (canSync) {
+            console.log('[GY] 分享用户 ' + shareId + ' 拥有同步权限');
+            setupSyncUI(true);
+          }
+        }
+      } catch(e) { console.warn('[GY] 分享配置解析失败:', e.message); }
+    };
+    sxhr.send();
+    autoLoadFromGitHub();
+  }
+
+  // ─── 拥有者：加载分享配置 ──────────────────────────────────────────────
+  var shareConfig = { shares: {} };
+  if (isOwner) {
+    var cxhr = new XMLHttpRequest();
+    cxhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/share-config.json?ref=' + GH_BRANCH);
+    cxhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+    cxhr.onload = function() {
+      if (cxhr.status === 200) {
+        try {
+          var res = JSON.parse(cxhr.responseText);
+          if (res.content) shareConfig = JSON.parse(decodeURIComponent(escape(atob(res.content))));
+        } catch(e) {}
+      }
+    };
+    cxhr.send();
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
-  // 以下为拥有者专属功能
+  // 拥有者 / 同步权限用户 专属功能
   // ═══════════════════════════════════════════════════════════════════════════
 
-  // ─── 按钮注入 (MutationObserver 防消失) ─────────────────────────────────
+  // ─── 元素创建辅助 ───────────────────────────────────────────────────────
+  function el(tag, cls, text, children, attrs) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text) e.textContent = text;
+    if (children) children.forEach(function(c){ if (c) e.appendChild(c); });
+    if (attrs) Object.keys(attrs).forEach(function(k){
+      if (k === 'onclick') e.onclick = attrs[k];
+      else if (k === 'style') e.setAttribute('style', attrs[k]);
+      else if (k === 'checked') e.checked = attrs[k];
+      else if (k === 'readOnly') e.readOnly = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    });
+    return e;
+  }
+
+  // ─── 按钮注入 (MutationObserver) ────────────────────────────────────────
   function injectButtons() {
     var ha = document.querySelector('.header-actions');
     if (!ha) return;
-    if (ha.querySelector('.btn-sync')) return; // 已注入
+    if (ha.querySelector('.btn-sync')) return;
 
     var syncBtn = document.createElement('button');
     syncBtn.className = 'btn btn-sync';
     syncBtn.textContent = '\u{1F504} 同步数据';
     syncBtn.onclick = function() { showOverlay('sync'); };
 
-    var shareBtn = document.createElement('button');
-    shareBtn.className = 'btn btn-share';
-    shareBtn.textContent = '\u{1F517} 分享看板';
-    shareBtn.onclick = function() { showOverlay('share'); };
-
     ha.appendChild(syncBtn);
-    ha.appendChild(shareBtn);
+
+    if (isOwner) {
+      var shareBtn = document.createElement('button');
+      shareBtn.className = 'btn btn-share';
+      shareBtn.textContent = '\u{1F517} 分享看板';
+      shareBtn.onclick = function() { showOverlay('share'); };
+      ha.appendChild(shareBtn);
+
+      var tplBtn = document.createElement('button');
+      tplBtn.className = 'btn btn-tpl';
+      tplBtn.textContent = '\u{1F4E5} 下载模板';
+      tplBtn.onclick = function() { downloadTemplate(); };
+      ha.appendChild(tplBtn);
+    }
     console.log('[GY] 按钮已注入');
   }
 
-  // 首次注入 + MutationObserver 持续监听
   injectButtons();
   var observer = new MutationObserver(function() { injectButtons(); });
   observer.observe(document.body, { childList: true, subtree: true });
 
-  // ─── 注入 UI 元素 ──────────────────────────────────────────────────────
-  // 同步模态框
+  // ─── 下载导入模板 ──────────────────────────────────────────────────────
+  function downloadTemplate() {
+    if (typeof XLSX === 'undefined') { alert('SheetJS 未加载'); return; }
+    var wb = XLSX.utils.book_new();
+    var sheets = [
+      { name: '会员明细', headers: ['门店名称','会员姓名','手机号','会员等级','注册日期','累计积分','累计消费'] },
+      { name: '本月销售', headers: ['门店名称','销售日期','商品名称','数量','金额','导购员'] },
+      { name: '门店指标', headers: ['门店名称','常规柜台指标','特殊柜台指标','月度目标','完成进度'] }
+    ];
+    sheets.forEach(function(s) {
+      var ws = XLSX.utils.aoa_to_sheet([s.headers]);
+      ws['!cols'] = s.headers.map(function() { return { wch: 16 }; });
+      XLSX.utils.book_append_sheet(wb, ws, s.name);
+    });
+    XLSX.writeFile(wb, '谷雨看板导入模板.xlsx');
+  }
+
+  // ─── 同步模态框（简化版：一键同步）────────────────────────────────────
   var syncOverlay = el('div', 'gy-overlay', '', [
     el('div', 'gy-modal', '', [
       el('button', 'gy-close', '\u00D7', null, { onclick: function(){ hideOverlay('sync'); } }),
       el('h3', '', '\u{1F504} 同步数据'),
-      el('p', '', '将当前看板数据同步到线上，所有查看者将看到最新数据'),
+      el('p', '', '将当前看板数据推送到线上，所有查看者刷新后看到最新数据'),
       el('div', 'gy-data-status', '', null, { id: 'gy-data-st' }),
-      el('div', 'gy-drop', '', [
-        el('div', 'gy-icon', '\u{1F4C1}'),
-        el('p', '', '拖拽 Excel (.xlsx) 文件到这里导入新数据'),
-        el('p', '', '或点击选择文件'),
-      ], { id: 'gy-drop' }),
-      el('input', '', '', null, { type: 'file', id: 'gy-fi', accept: '.xlsx,.xls', style: 'display:none' }),
-      el('div', 'gy-file', '', [
-        el('span', '', '\u{1F4C4}', null, { style: 'font-size:1.3rem' }),
-        el('div', '', '', [el('div', 'gy-fname', '', null, { id: 'gy-fn' }), el('div', 'gy-fsize', '', null, { id: 'gy-fs' })]),
-        el('button', 'gy-fremove', '\u00D7', null, { id: 'gy-fr' }),
-      ], { id: 'gy-finfo' }),
-      el('div', 'gy-toggle-row', '', [
-        el('input', '', '', null, { type: 'checkbox', id: 'gy-st', checked: true }),
-        el('label', '', '记住 Token'),
-      ]),
-      el('input', 'gy-input', '', null, { type: 'password', id: 'gy-tk', placeholder: 'GitHub Token (ghp_xxx)' }),
+      el('button', 'gy-btn', '\u{1F504} 一键同步', null, { id: 'gy-sb' }),
       el('div', 'gy-progress', '', [
         el('div', 'gy-pbar', '', [el('div', 'gy-pfill', '', null, { id: 'gy-pf' })]),
-        el('div', 'gy-ptext', '准备中...', null, { id: 'gy-pt' }),
+        el('div', 'gy-ptext', '', null, { id: 'gy-pt' }),
       ], { id: 'gy-pw' }),
-      el('button', 'gy-btn', '同步到线上', null, { id: 'gy-sb', disabled: true }),
       el('div', 'gy-msg', '', null, { id: 'gy-msg' }),
+      el('span', 'gy-token-link', '', null, { id: 'gy-tkl', style: 'display:none' }),
     ])
   ], { id: 'gy-sync-ov' });
   document.body.appendChild(syncOverlay);
 
-  // 分享模态框
-  var shareUrl = location.origin + location.pathname;
+  // ─── 分享管理模态框（拥有者专属）─────────────────────────────────────
   var shareOverlay = el('div', 'gy-overlay', '', [
     el('div', 'gy-modal', '', [
       el('button', 'gy-close', '\u00D7', null, { onclick: function(){ hideOverlay('share'); } }),
-      el('h3', '', '\u{1F517} 分享看板'),
-      el('p', '', '复制链接发给同事，他们打开即可查看看板（看不到同步按钮）'),
-      el('div', 'gy-share-url', '', [
-        el('input', '', '', null, { type: 'text', id: 'gy-si', value: shareUrl, readOnly: true }),
-        el('button', 'gy-copy-btn', '复制', null, { id: 'gy-cb' }),
+      el('h3', '', '\u{1F517} 分享管理'),
+      el('p', '', '创建带唯一标识的分享链接，控制每个人的同步权限'),
+      el('div', '', '', [
+        el('input', 'gy-input', '', null, { id: 'gy-nid', placeholder: '输入链接标识（如：zhangsan、北京店）', style: 'margin-bottom:.5rem' }),
+        el('button', 'gy-btn', '\u2795 创建分享链接', null, { id: 'gy-addid', style: 'margin-bottom:1rem' }),
       ]),
-      el('p', '', '\u{1F4A1} 被分享者只能查看数据，无法同步。', null, { style: 'font-size:.82rem;color:#94a3b8' }),
+      el('div', '', '', null, { id: 'gy-slist' }),
+      el('div', 'gy-msg', '', null, { id: 'gy-smsg' }),
     ])
   ], { id: 'gy-share-ov' });
   document.body.appendChild(shareOverlay);
 
-  // 错误面板
+  // ─── Token 输入弹窗（首次同步时显示）──────────────────────────────────
+  var tokenOverlay = el('div', 'gy-overlay', '', [
+    el('div', 'gy-modal', '', [
+      el('h3', '', '\u{1F511} 输入 GitHub Token'),
+      el('p', '', '首次同步需要 Token 授权，后续会自动记住'),
+      el('input', 'gy-input', '', null, { type: 'password', id: 'gy-tki', placeholder: 'GitHub Token (ghp_xxx)' }),
+      el('button', 'gy-btn', '确认并同步', null, { id: 'gy-tkb' }),
+      el('div', 'gy-msg', '', null, { id: 'gy-tkmsg' }),
+    ])
+  ], { id: 'gy-token-ov' });
+  document.body.appendChild(tokenOverlay);
+
+  // ─── 错误面板 ───────────────────────────────────────────────────────────
   var errBadge = el('div', 'gy-error-badge', '', null, { id: 'gy-eb' });
-  errBadge.onclick = function() { toggleErrorPanel(); };
+  errBadge.onclick = function() { document.getElementById('gy-ep').classList.toggle('show'); };
   document.body.appendChild(errBadge);
 
   var errPanel = el('div', 'gy-error-panel', '', [
     el('div', 'gy-error-header', '', [
-      el('h4', '', '\u26A0\uFE0F 导入错误记录'),
+      el('h4', '', '\u26A0\uFE0F 错误记录'),
       el('button', '', '\u00D7', null, { onclick: function(){ errPanel.classList.remove('show'); }, style: 'background:none;border:none;cursor:pointer;color:#991b1b;font-size:1.1rem' }),
     ]),
     el('div', 'gy-error-list', '', null, { id: 'gy-el' }),
@@ -5830,202 +5929,224 @@ root.render(React.createElement(Dashboard));
   document.body.appendChild(errPanel);
 
   renderErrors();
-
-  // 数据状态显示
   updateDataStatus();
 
-  // ─── 事件绑定 ──────────────────────────────────────────────────────────
-  var selFile = null;
-  var drop = document.getElementById('gy-drop');
-  var fi = document.getElementById('gy-fi');
-  var finfo = document.getElementById('gy-finfo');
-  var sb = document.getElementById('gy-sb');
-  var tk = document.getElementById('gy-tk');
-  var st = document.getElementById('gy-st');
-
-  // 恢复 token
-  var savedTk = localStorage.getItem(TOKEN_KEY);
-  if (savedTk) tk.value = savedTk;
-  tk.addEventListener('input', chkReady);
-
-  // 拖拽
-  drop.addEventListener('click', function(){ fi.click(); });
-  drop.addEventListener('dragover', function(e){ e.preventDefault(); drop.classList.add('dragover'); });
-  drop.addEventListener('dragleave', function(){ drop.classList.remove('dragover'); });
-  drop.addEventListener('drop', function(e){
-    e.preventDefault(); drop.classList.remove('dragover');
-    var f = e.dataTransfer.files[0];
-    if (f && /\.(xlsx|xls)$/i.test(f.name)) hFile(f);
-    else showMsg('请选择 .xlsx 文件', 'err');
-  });
-  fi.addEventListener('change', function(){ if (fi.files[0]) hFile(fi.files[0]); });
-  document.getElementById('gy-fr').addEventListener('click', function(){
-    selFile = null; fi.value = '';
-    finfo.classList.remove('show');
-    document.getElementById('gy-pw').classList.remove('show');
-    chkReady();
+  // ─── 同步按钮事件 ──────────────────────────────────────────────────────
+  document.getElementById('gy-sb').addEventListener('click', function() {
+    var savedData = localStorage.getItem(DATA_KEY);
+    if (!savedData) {
+      showMsg('请先通过"导入数据"按钮导入 Excel 文件', 'err');
+      return;
+    }
+    var token = localStorage.getItem(TOKEN_KEY);
+    if (!token) {
+      hideOverlay('sync');
+      showOverlay('token');
+      return;
+    }
+    doSync(token);
   });
 
-  function hFile(f) {
-    selFile = f;
-    document.getElementById('gy-fn').textContent = f.name;
-    document.getElementById('gy-fs').textContent = fmtSize(f.size);
-    finfo.classList.add('show');
-    chkReady();
-  }
-  function chkReady() { sb.disabled = !(selFile && tk.value.trim()); }
+  // Token 修改链接
+  var tklEl = document.getElementById('gy-tkl');
+  tklEl.textContent = '\u{1F511} 修改 Token';
+  tklEl.onclick = function() {
+    hideOverlay('sync');
+    showOverlay('token');
+  };
 
-  // 同步 - 导入 Excel + 推送到 GitHub
-  sb.addEventListener('click', function() {
-    if (!selFile || !tk.value.trim()) return;
-    var token = tk.value.trim();
-    if (st.checked) localStorage.setItem(TOKEN_KEY, token);
-
-    sb.disabled = true; sb.textContent = '处理中...';
-    hideMsg();
-    var pw = document.getElementById('gy-pw');
-    var pf = document.getElementById('gy-pf');
-    var pt = document.getElementById('gy-pt');
-    pw.classList.add('show');
-    pf.style.width = '10%'; pt.textContent = '读取 Excel...';
-
-    var reader = new _OrigFileReader();
-    reader.onload = function() {
-      pf.style.width = '20%'; pt.textContent = '解析数据...';
-
-      // 尝试用 XLSX 解析并处理
-      var data = null;
-      try {
-        var wb = XLSX.read(new Uint8Array(reader.result), { type: 'array', cellDates: true });
-        if (typeof window.processExcelWorkbook === 'function') {
-          // 使用原始 processExcelWorkbook（已被 wrap）
-          var origFn = window.processExcelWorkbook;
-          // 暂时恢复原函数避免双重保存
-          data = origFn(wb);
-        }
-      } catch(e) {
-        addError('Excel 解析失败', e.message, getErrorFix('parse', e.message));
-        showMsg('\u274C Excel 解析失败: ' + e.message, 'err');
-        sb.disabled = false; sb.textContent = '同步到线上';
-        pw.classList.remove('show');
-        return;
-      }
-
-      if (!data || !data.storeData) {
-        showMsg('\u274C 数据处理结果异常', 'err');
-        sb.disabled = false; sb.textContent = '同步到线上';
-        pw.classList.remove('show');
-        return;
-      }
-
-      pf.style.width = '30%'; pt.textContent = '更新看板...';
-
-      // 更新 React 状态 - 通过触发 React 组件重新获取数据
-      // 因为 setD 在 React 内部，我们需要通过自定义事件通知
-      window.dispatchEvent(new CustomEvent('gy-data-updated', { detail: data }));
-
-      // 同时捕获 Excel 文件
-      try {
-        var bytes = new Uint8Array(reader.result);
-        var binary = '';
-        for (var i = 0; i < bytes.length; i += 8192) {
-          binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + 8192, bytes.length)));
-        }
-        capturedExcelB64 = btoa(binary);
-        try {
-          if (capturedExcelB64.length < MAX_STORAGE) {
-            localStorage.setItem(FILE_KEY, capturedExcelB64);
-          }
-        } catch(e) {}
-      } catch(e) {}
-
-      pf.style.width = '40%'; pt.textContent = '上传到 GitHub...';
-
-      // 上传 Excel 数据文件到 GitHub
-      var b64 = capturedExcelB64 || btoa(binary);
-      apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.xlsx?ref=' + GH_BRANCH, token)
-        .then(function(res) {
-          var sha = (res.status === 200 && res.data.sha) ? res.data.sha : null;
-          var body = { message: '同步数据 - ' + new Date().toLocaleString('zh-CN'), content: b64, branch: GH_BRANCH };
-          if (sha) body.sha = sha;
-          pf.style.width = '60%'; pt.textContent = '上传数据文件...';
-          return apiCall('PUT', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.xlsx', token, body);
-        })
-        .then(function(res) {
-          if (res.status === 200 || res.status === 201) {
-            pf.style.width = '100%'; pt.textContent = '同步完成！';
-            var csha = res.data.commit ? res.data.commit.sha.slice(0, 7) : '';
-            showMsg('\u2705 同步成功！' + csha + ' 数据已更新，查看者刷新即可看到', 'ok');
-            updateDataStatus();
-            selFile = null; fi.value = '';
-            finfo.classList.remove('show');
-            setTimeout(function(){ pw.classList.remove('show'); pf.style.width = '0%'; }, 3000);
-          } else {
-            throw new Error(res.data.message || 'HTTP ' + res.status);
-          }
-        })
-        .catch(function(err) {
-          showMsg('\u274C ' + err.message, 'err');
-          pw.classList.remove('show');
-        })
-        .finally(function() {
-          sb.disabled = false; sb.textContent = '同步到线上';
-        });
-    };
-    reader.readAsArrayBuffer(selFile);
-  });
-
-  // 分享 - 复制
-  document.getElementById('gy-cb').addEventListener('click', function() {
-    var input = document.getElementById('gy-si');
-    navigator.clipboard.writeText(input.value).then(function() {
-      var btn = document.getElementById('gy-cb');
-      btn.textContent = '已复制'; btn.classList.add('copied');
-      setTimeout(function(){ btn.textContent = '复制'; btn.classList.remove('copied'); }, 2000);
+  // ─── 创建分享链接 ──────────────────────────────────────────────────────
+  document.getElementById('gy-addid').addEventListener('click', function() {
+    var input = document.getElementById('gy-nid');
+    var id = input.value.trim();
+    if (!id) { showShareMsg('请输入标识名称', 'err'); return; }
+    if (!/^[a-zA-Z0-9\u4e00-\u9fa5_-]+$/.test(id)) {
+      showShareMsg('标识只能使用中文、字母、数字、下划线、横线', 'err');
+      return;
+    }
+    if (!shareConfig.shares) shareConfig.shares = {};
+    if (shareConfig.shares[id]) { showShareMsg('该标识已存在', 'err'); return; }
+    shareConfig.shares[id] = { canSync: false, createdAt: new Date().toLocaleString('zh-CN') };
+    saveShareConfig().then(function() {
+      input.value = '';
+      renderShareList();
+      showShareMsg('\u2705 链接已创建', 'ok');
     });
   });
 
-  // 监听数据更新事件（在 React 外部更新数据）
-  window.addEventListener('gy-data-updated', function(e) {
-    var newData = e.detail;
-    if (!newData) return;
-    // 尝试更新 DASHBOARD_DATA 并触发 React 重渲染
-    if (typeof DASHBOARD_DATA !== 'undefined') {
-      Object.keys(DASHBOARD_DATA).forEach(function(k) { delete DASHBOARD_DATA[k]; });
-      Object.assign(DASHBOARD_DATA, newData);
-    }
-    // 触发 React 状态更新 - 通过模拟文件导入
-    // 由于 setD 在 React 闭包内，需要通过 React DevTools 或 DOM hack
-    // 最可靠的方式：重新渲染整个 React 树
-    try {
-      var rootEl = document.getElementById('root');
-      if (rootEl && window.React && window.ReactDOM) {
-        var root = ReactDOM.createRoot(rootEl);
-        // 这会触发完整的重新渲染，使用更新后的 DASHBOARD_DATA
-        root.render(React.createElement(Dashboard));
-        console.log('[GY] React 已使用新数据重新渲染');
-      }
-    } catch(e) {
-      console.warn('[GY] React 重渲染失败，请刷新页面:', e.message);
-    }
+  // ─── Token 提交 ────────────────────────────────────────────────────────
+  document.getElementById('gy-tkb').addEventListener('click', function() {
+    var input = document.getElementById('gy-tki');
+    var token = input.value.trim();
+    if (!token) { showTokenMsg('请输入 Token', 'err'); return; }
+    localStorage.setItem(TOKEN_KEY, token);
+    hideOverlay('token');
+    showOverlay('sync');
+    doSync(token);
   });
 
-  // 点击遮罩关闭
-  syncOverlay.addEventListener('click', function(e){ if (e.target === syncOverlay) hideOverlay('sync'); });
-  shareOverlay.addEventListener('click', function(e){ if (e.target === shareOverlay) hideOverlay('share'); });
+  // ─── 核心同步：上传当前缓存数据到 GitHub ──────────────────────────────
+  function doSync(token) {
+    var sb = document.getElementById('gy-sb');
+    var pw = document.getElementById('gy-pw');
+    var pf = document.getElementById('gy-pf');
+    var pt = document.getElementById('gy-pt');
+
+    sb.disabled = true;
+    sb.textContent = '同步中...';
+    hideMsg();
+    pw.classList.add('show');
+    pf.style.width = '10%';
+    pt.textContent = '准备数据...';
+
+    // 读取当前缓存数据
+    var dataJson = localStorage.getItem(DATA_KEY);
+    if (!dataJson) {
+      showMsg('暂无数据，请先导入 Excel', 'err');
+      sb.disabled = false; sb.textContent = '\u{1F504} 一键同步';
+      pw.classList.remove('show');
+      return;
+    }
+
+    pf.style.width = '20%';
+    pt.textContent = '上传到 GitHub...';
+
+    // 将数据 JSON 编码为 base64 上传
+    var b64 = btoa(unescape(encodeURIComponent(dataJson)));
+
+    apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH, token)
+      .then(function(res) {
+        var sha = (res.status === 200 && res.data.sha) ? res.data.sha : null;
+        var body = { message: '同步数据 - ' + new Date().toLocaleString('zh-CN'), content: b64, branch: GH_BRANCH };
+        if (sha) body.sha = sha;
+        pf.style.width = '50%';
+        pt.textContent = '上传数据...';
+        return apiCall('PUT', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json', token, body);
+      })
+      .then(function(res) {
+        if (res.status === 200 || res.status === 201) {
+          pf.style.width = '100%';
+          pt.textContent = '同步完成！';
+          var csha = res.data.commit ? res.data.commit.sha.slice(0, 7) : '';
+          showMsg('\u2705 同步成功！' + csha + ' 查看者刷新即可看到最新数据', 'ok');
+          updateDataStatus();
+          setTimeout(function(){ pw.classList.remove('show'); pf.style.width = '0%'; }, 3000);
+        } else {
+          throw new Error(res.data.message || 'HTTP ' + res.status);
+        }
+      })
+      .catch(function(err) {
+        showMsg('\u274C ' + err.message, 'err');
+        if (err.message.indexOf('Bad credentials') >= 0) {
+          showMsg('\u274C Token 无效，请点击"修改 Token"重新输入', 'err');
+          tklEl.style.display = 'inline-block';
+        }
+        pw.classList.remove('show');
+      })
+      .finally(function() {
+        sb.disabled = false;
+        sb.textContent = '\u{1F504} 一键同步';
+      });
+  }
+
+  // ─── 保存分享配置到 GitHub ────────────────────────────────────────────
+  function saveShareConfig() {
+    var token = localStorage.getItem(TOKEN_KEY);
+    if (!token) { alert('请先设置 Token（同步一次数据即可）'); return Promise.resolve(); }
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(shareConfig))));
+    return apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/share-config.json?ref=' + GH_BRANCH, token)
+      .then(function(res) {
+        var sha = (res.status === 200 && res.data.sha) ? res.data.sha : null;
+        var body = { message: '更新分享配置 - ' + new Date().toLocaleString('zh-CN'), content: b64, branch: GH_BRANCH };
+        if (sha) body.sha = sha;
+        return apiCall('PUT', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/share-config.json', token, body);
+      })
+      .then(function(res) {
+        if (res.status === 200 || res.status === 201) console.log('[GY] 分享配置已保存');
+        return res;
+      });
+  }
+
+  // ─── 渲染分享链接列表 ─────────────────────────────────────────────────
+  function renderShareList() {
+    var baseUrl = location.origin + location.pathname;
+    var list = document.getElementById('gy-slist');
+    var shares = (shareConfig && shareConfig.shares) || {};
+    var keys = Object.keys(shares);
+    if (keys.length === 0) {
+      list.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:.84rem;padding:1rem 0">暂无分享链接，请在上方创建</p>';
+      return;
+    }
+    list.innerHTML = '';
+    keys.forEach(function(id) {
+      var s = shares[id];
+      var url = baseUrl + '?id=' + encodeURIComponent(id);
+      var item = document.createElement('div');
+      item.className = 'gy-share-item';
+      item.innerHTML =
+        '<span class="gy-sid">' + id + '</span>' +
+        '<span class="gy-surl" title="' + url + '">' + url + '</span>' +
+        '<button class="gy-scopy" title="复制链接">\u{1F4CB}</button>' +
+        '<button class="gy-stoggle' + (s.canSync ? ' on' : '') + '" title="同步权限">' + (s.canSync ? '\u2705 可同步' : '\u{1F6AB} 仅查看') + '</button>' +
+        '<button class="gy-sdel" title="删除">\u{1F5D1}</button>';
+
+      item.querySelector('.gy-scopy').onclick = function() {
+        navigator.clipboard.writeText(url).then(function() {
+          showShareMsg('\u2705 已复制 ' + id + ' 的链接', 'ok');
+        });
+      };
+      item.querySelector('.gy-stoggle').onclick = function() {
+        s.canSync = !s.canSync;
+        saveShareConfig().then(function() {
+          renderShareList();
+          showShareMsg('\u2705 已更新 ' + id + ' 的权限', 'ok');
+        });
+      };
+      item.querySelector('.gy-sdel').onclick = function() {
+        if (confirm('确定删除"' + id + '"的分享链接？')) {
+          delete shares[id];
+          saveShareConfig().then(function() {
+            renderShareList();
+            showShareMsg('\u2705 已删除', 'ok');
+          });
+        }
+      };
+      list.appendChild(item);
+    });
+  }
+
+  // ─── 给同步权限用户的简化 UI ───────────────────────────────────────────
+  function setupSyncUI(isShareUser) {
+    if (!isShareUser) return;
+    var ha = document.querySelector('.header-actions');
+    if (!ha || ha.querySelector('.btn-sync')) return;
+    var syncBtn = document.createElement('button');
+    syncBtn.className = 'btn btn-sync';
+    syncBtn.textContent = '\u{1F504} 同步数据';
+    syncBtn.onclick = function() { showOverlay('sync'); };
+    ha.appendChild(syncBtn);
+  }
 
   // ─── 辅助函数 ──────────────────────────────────────────────────────────
   function showOverlay(type) {
-    if (type === 'sync') { syncOverlay.classList.add('show'); updateDataStatus(); }
-    if (type === 'share') shareOverlay.classList.add('show');
+    if (type === 'sync') {
+      syncOverlay.classList.add('show');
+      updateDataStatus();
+      var token = localStorage.getItem(TOKEN_KEY);
+      tklEl.style.display = token ? 'inline-block' : 'none';
+    }
+    if (type === 'share') { shareOverlay.classList.add('show'); renderShareList(); }
+    if (type === 'token') tokenOverlay.classList.add('show');
   }
   function hideOverlay(type) {
     if (type === 'sync') syncOverlay.classList.remove('show');
     if (type === 'share') shareOverlay.classList.remove('show');
+    if (type === 'token') tokenOverlay.classList.remove('show');
   }
   function showMsg(t, type) { var m = document.getElementById('gy-msg'); m.textContent = t; m.className = 'gy-msg show ' + type; }
   function hideMsg() { document.getElementById('gy-msg').className = 'gy-msg'; }
-  function fmtSize(b) { if (b<1024) return b+' B'; if (b<1048576) return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(2)+' MB'; }
+  function showShareMsg(t, type) { var m = document.getElementById('gy-smsg'); m.textContent = t; m.className = 'gy-msg show ' + type; setTimeout(function(){ m.className = 'gy-msg'; }, 3000); }
+  function showTokenMsg(t, type) { var m = document.getElementById('gy-tkmsg'); m.textContent = t; m.className = 'gy-msg show ' + type; }
 
   function apiCall(method, path, token, body) {
     return new Promise(function(resolve, reject) {
@@ -6047,18 +6168,17 @@ root.render(React.createElement(Dashboard));
     var st = document.getElementById('gy-data-st');
     if (!st) return;
     var savedData = localStorage.getItem(DATA_KEY);
-    var savedFile = localStorage.getItem(FILE_KEY);
     if (savedData) {
       try {
         var d = JSON.parse(savedData);
-        st.textContent = '\u2705 本地有缓存数据：' + d.meta.month + '月，共 ' + d.storeData.length + ' 家门店。导入新 Excel 将覆盖。';
+        st.textContent = '\u2705 本地缓存：' + (d.meta ? d.meta.month + '月' : '未知月份') + '，共 ' + d.storeData.length + ' 家门店';
         st.className = 'gy-data-status show';
       } catch(e) {
         st.textContent = '\u26A0\uFE0F 缓存数据异常，建议重新导入';
         st.className = 'gy-data-status show warn';
       }
     } else {
-      st.textContent = '\u{1F4E2} 暂无缓存数据，请导入 Excel 文件';
+      st.textContent = '\u{1F4E2} 暂无缓存数据，请先通过"导入数据"按钮导入 Excel';
       st.className = 'gy-data-status show warn';
     }
   }
@@ -6066,11 +6186,7 @@ root.render(React.createElement(Dashboard));
   function renderErrors() {
     var badge = document.getElementById('gy-eb');
     var list = document.getElementById('gy-el');
-    if (!badge || !list) {
-      // 延迟渲染（DOM 可能尚未准备好）
-      setTimeout(renderErrors, 500);
-      return;
-    }
+    if (!badge || !list) { setTimeout(renderErrors, 500); return; }
     if (errorLogs.length > 0) {
       badge.textContent = errorLogs.length;
       badge.classList.add('show');
@@ -6085,30 +6201,35 @@ root.render(React.createElement(Dashboard));
     }
   }
 
-  function toggleErrorPanel() {
-    var panel = document.getElementById('gy-ep');
-    panel.classList.toggle('show');
-  }
+  // ─── 点击遮罩关闭 ────────────────────────────────────────────────────
+  syncOverlay.addEventListener('click', function(e){ if (e.target === syncOverlay) hideOverlay('sync'); });
+  shareOverlay.addEventListener('click', function(e){ if (e.target === shareOverlay) hideOverlay('share'); });
+  tokenOverlay.addEventListener('click', function(e){ if (e.target === tokenOverlay) hideOverlay('token'); });
 
-  function el(tag, cls, text, children, attrs) {
-    var e = document.createElement(tag);
-    if (cls) e.className = cls;
-    if (text) e.textContent = text;
-    if (children) children.forEach(function(c){ if (c) e.appendChild(c); });
-    if (attrs) Object.keys(attrs).forEach(function(k){ 
-      if (k === 'onclick') e.onclick = attrs[k];
-      else if (k === 'style') e.setAttribute('style', attrs[k]);
-      else if (k === 'checked') e.checked = attrs[k];
-      else if (k === 'readOnly') e.readOnly = attrs[k];
-      else e.setAttribute(k, attrs[k]);
-    });
-    return e;
-  }
+  // ─── 监听数据更新事件 ─────────────────────────────────────────────────
+  window.addEventListener('gy-data-updated', function(e) {
+    var newData = e.detail;
+    if (!newData) return;
+    if (typeof DASHBOARD_DATA !== 'undefined') {
+      Object.keys(DASHBOARD_DATA).forEach(function(k) { delete DASHBOARD_DATA[k]; });
+      Object.assign(DASHBOARD_DATA, newData);
+    }
+    try {
+      var rootEl = document.getElementById('root');
+      if (rootEl && window.React && window.ReactDOM) {
+        var root = ReactDOM.createRoot(rootEl);
+        root.render(React.createElement(Dashboard));
+        console.log('[GY] React 已使用新数据重新渲染');
+      }
+    } catch(e) {
+      console.warn('[GY] React 重渲染失败:', e.message);
+    }
+  });
 
-  // 自动从 GitHub 加载数据
+  // ─── 自动加载（拥有者也检查 GitHub 最新版本）────────────────────────
   autoLoadFromGitHub();
 
-  // ─── 也拦截原始导入模态框的错误 ────────────────────────────────────────
+  // ─── 拦截控制台错误 ───────────────────────────────────────────────────
   var _origConsoleError = console.error;
   console.error = function() {
     var args = Array.prototype.slice.call(arguments);
@@ -6119,40 +6240,28 @@ root.render(React.createElement(Dashboard));
     _origConsoleError.apply(console, args);
   };
 
-  // ─── 自动从 GitHub 加载最新数据 ─────────────────────────────────────────
-  function autoLoadFromGitHub() {
-    // 无需 token 即可读取公开仓库
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.xlsx?ref=' + GH_BRANCH);
-    xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
-    xhr.onload = function() {
-      if (xhr.status !== 200) return;
-      try {
-        var res = JSON.parse(xhr.responseText);
-        if (!res.content) return;
-        // 检查是否与本地缓存一致
-        var localFile = localStorage.getItem(FILE_KEY);
-        if (localFile === res.content) return; // 已一致，无需更新
-
-        // 解码并处理
-        var binary = atob(res.content);
-        var bytes = new Uint8Array(binary.length);
-        for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-
-        var wb = XLSX.read(bytes, { type: 'array', cellDates: true });
-        if (typeof window.processExcelWorkbook === 'function') {
-          var data = window.processExcelWorkbook(wb);
-          if (data && data.meta && data.storeData) {
-            window.dispatchEvent(new CustomEvent('gy-data-updated', { detail: data }));
-            console.log('[GY] 已从 GitHub 自动加载最新数据');
-          }
-        }
-      } catch(e) {
-        console.warn('[GY] 自动加载 GitHub 数据失败:', e.message);
+  // ─── 在原生导入弹窗中注入"下载模板"按钮 ────────────────────────────
+  function injectTemplateBtn() {
+    var allEls = document.querySelectorAll('.modal-content, .modal, [class*="modal"], [class*="import"]');
+    for (var i = 0; i < allEls.length; i++) {
+      var modal = allEls[i];
+      if (modal.querySelector('.gy-tpl-btn')) continue;
+      var text = modal.textContent || '';
+      if (text.indexOf('导入') >= 0 && (text.indexOf('Excel') >= 0 || text.indexOf('xlsx') >= 0 || text.indexOf('文件') >= 0)) {
+        var btn = document.createElement('button');
+        btn.className = 'btn btn-tpl gy-tpl-btn';
+        btn.textContent = '\u{1F4E5} 下载导入模板';
+        btn.style.cssText = 'margin:8px 0;padding:8px 16px;border-radius:8px';
+        btn.onclick = function() { downloadTemplate(); };
+        var footer = modal.querySelector('.modal-footer, [class*="footer"], [class*="actions"]');
+        if (footer) footer.insertBefore(btn, footer.firstChild);
+        else modal.appendChild(btn);
+        break;
       }
-    };
-    xhr.send();
+    }
   }
+  var tplObserver = new MutationObserver(function() { injectTemplateBtn(); });
+  tplObserver.observe(document.body, { childList: true, subtree: true });
 
 })();
 </script>
