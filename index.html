@@ -278,16 +278,6 @@ tr.summary-row td{background:#EEF2FF !important;font-weight:700;border-bottom:2p
 .gy-data-status{background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:.6rem 1rem;margin-bottom:1rem;font-size:.82rem;color:#166534;display:none}
 .gy-data-status.show{display:block}
 .gy-data-status.warn{background:#fffbeb;border-color:#fde68a;color:#92400e}
-.gy-share-item{display:flex;align-items:center;gap:.5rem;padding:.65rem .8rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:.5rem;font-size:.82rem}
-.gy-share-item .gy-sid{font-weight:600;color:#1e40af;min-width:70px}
-.gy-share-item .gy-surl{flex:1;color:#64748b;font-family:monospace;font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gy-share-item button{background:none;border:none;cursor:pointer;padding:.2rem .5rem;border-radius:6px;font-size:.82rem}
-.gy-share-item .gy-scopy{color:#2563eb}
-.gy-share-item .gy-scopy:hover{background:#eff6ff}
-.gy-share-item .gy-stoggle{color:#059669;font-size:.76rem;padding:.15rem .5rem;border:1px solid #d1d5db;border-radius:6px}
-.gy-share-item .gy-stoggle.on{background:#ecfdf5;border-color:#059669}
-.gy-share-item .gy-sdel{color:#ef4444}
-.gy-share-item .gy-sdel:hover{background:#fef2f2}
 .gy-token-link{display:inline-block;font-size:.78rem;color:#2563eb;cursor:pointer;margin-top:.6rem;text-decoration:underline}
 .gy-token-link:hover{color:#1d4ed8}
 .gy-error-panel{position:fixed;bottom:1rem;right:1rem;width:380px;max-height:300px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);z-index:99998;display:none;flex-direction:column;overflow:hidden}
@@ -5524,7 +5514,6 @@ root.render(React.createElement(Dashboard));
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
   var isOwner = false;
-  var shareId = params.get('id') || null;
 
   if (params.get('owner') === '1') {
     localStorage.setItem(OWNER_KEY, '1');
@@ -5532,7 +5521,7 @@ root.render(React.createElement(Dashboard));
     console.log('[GY] Owner 模式已激活');
   }
   isOwner = localStorage.getItem(OWNER_KEY) === '1';
-  console.log('[GY] isOwner:', isOwner, '| shareId:', shareId);
+  console.log('[GY] isOwner:', isOwner);
 
   // ─── 错误日志系统 ───────────────────────────────────────────────────────
   var errorLogs = [];
@@ -5750,52 +5739,10 @@ root.render(React.createElement(Dashboard));
     xhr.send();
   }
 
-  // ─── 非拥有者（且非分享ID）到此为止 ─────────────────────────────────────
-  if (!isOwner && !shareId) {
+  // ─── 非拥有者到此为止 ──────────────────────────────────────────────────
+  if (!isOwner) {
     autoLoadFromGitHub();
     return;
-  }
-
-  // ─── 分享 ID 用户：检查权限 ─────────────────────────────────────────────
-  var canSync = false;
-  if (shareId && !isOwner) {
-    var sxhr = new XMLHttpRequest();
-    sxhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/share-config.json?ref=' + GH_BRANCH);
-    sxhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
-    sxhr.onload = function() {
-      if (sxhr.status !== 200) return;
-      try {
-        var res = JSON.parse(sxhr.responseText);
-        if (!res.content) return;
-        var cfg = JSON.parse(decodeURIComponent(escape(atob(res.content))));
-        if (cfg && cfg.shares && cfg.shares[shareId]) {
-          canSync = !!cfg.shares[shareId].canSync;
-          if (canSync) {
-            console.log('[GY] 分享用户 ' + shareId + ' 拥有同步权限');
-            setupSyncUI(true);
-          }
-        }
-      } catch(e) { console.warn('[GY] 分享配置解析失败:', e.message); }
-    };
-    sxhr.send();
-    autoLoadFromGitHub();
-  }
-
-  // ─── 拥有者：加载分享配置 ──────────────────────────────────────────────
-  var shareConfig = { shares: {} };
-  if (isOwner) {
-    var cxhr = new XMLHttpRequest();
-    cxhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/share-config.json?ref=' + GH_BRANCH);
-    cxhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
-    cxhr.onload = function() {
-      if (cxhr.status === 200) {
-        try {
-          var res = JSON.parse(cxhr.responseText);
-          if (res.content) shareConfig = JSON.parse(decodeURIComponent(escape(atob(res.content))));
-        } catch(e) {}
-      }
-    };
-    cxhr.send();
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -5886,18 +5833,18 @@ root.render(React.createElement(Dashboard));
   ], { id: 'gy-sync-ov' });
   document.body.appendChild(syncOverlay);
 
-  // ─── 分享管理模态框（拥有者专属）─────────────────────────────────────
+  // ─── 分享模态框（简单复制链接）─────────────────────────────────────────
+  var shareBaseUrl = location.origin + location.pathname;
   var shareOverlay = el('div', 'gy-overlay', '', [
     el('div', 'gy-modal', '', [
       el('button', 'gy-close', '\u00D7', null, { onclick: function(){ hideOverlay('share'); } }),
-      el('h3', '', '\u{1F517} 分享管理'),
-      el('p', '', '创建带唯一标识的分享链接，控制每个人的同步权限'),
+      el('h3', '', '\u{1F517} 分享看板'),
+      el('p', '', '复制下方链接发给同事，他们打开后自动加载最新数据'),
       el('div', '', '', [
-        el('input', 'gy-input', '', null, { id: 'gy-nid', placeholder: '输入链接标识（如：zhangsan、北京店）', style: 'margin-bottom:.5rem' }),
-        el('button', 'gy-btn', '\u2795 创建分享链接', null, { id: 'gy-addid', style: 'margin-bottom:1rem' }),
+        el('input', 'gy-input', '', null, { id: 'gy-surl', value: shareBaseUrl, readOnly: true, style: 'font-family:monospace;font-size:.82rem;background:#f8fafc;margin-bottom:.5rem' }),
+        el('button', 'gy-btn', '\u{1F4CB} 复制链接', null, { id: 'gy-cbtn' }),
       ]),
-      el('div', '', '', null, { id: 'gy-slist' }),
-      el('div', 'gy-msg', '', null, { id: 'gy-smsg' }),
+      el('p', '', '\u{1F4A1} 你在管理端同步数据后，所有分享者刷新页面即可看到最新内容', null, { style: 'font-size:.82rem;color:#94a3b8;margin-top:1rem' }),
     ])
   ], { id: 'gy-share-ov' });
   document.body.appendChild(shareOverlay);
@@ -5955,22 +5902,13 @@ root.render(React.createElement(Dashboard));
     showOverlay('token');
   };
 
-  // ─── 创建分享链接 ──────────────────────────────────────────────────────
-  document.getElementById('gy-addid').addEventListener('click', function() {
-    var input = document.getElementById('gy-nid');
-    var id = input.value.trim();
-    if (!id) { showShareMsg('请输入标识名称', 'err'); return; }
-    if (!/^[a-zA-Z0-9\u4e00-\u9fa5_-]+$/.test(id)) {
-      showShareMsg('标识只能使用中文、字母、数字、下划线、横线', 'err');
-      return;
-    }
-    if (!shareConfig.shares) shareConfig.shares = {};
-    if (shareConfig.shares[id]) { showShareMsg('该标识已存在', 'err'); return; }
-    shareConfig.shares[id] = { canSync: false, createdAt: new Date().toLocaleString('zh-CN') };
-    saveShareConfig().then(function() {
-      input.value = '';
-      renderShareList();
-      showShareMsg('\u2705 链接已创建', 'ok');
+  // ─── 复制分享链接 ──────────────────────────────────────────────────────
+  document.getElementById('gy-cbtn').addEventListener('click', function() {
+    var input = document.getElementById('gy-surl');
+    navigator.clipboard.writeText(input.value).then(function() {
+      var btn = document.getElementById('gy-cbtn');
+      btn.textContent = '\u2705 已复制';
+      setTimeout(function(){ btn.textContent = '\u{1F4CB} 复制链接'; }, 2000);
     });
   });
 
@@ -6049,84 +5987,6 @@ root.render(React.createElement(Dashboard));
       });
   }
 
-  // ─── 保存分享配置到 GitHub ────────────────────────────────────────────
-  function saveShareConfig() {
-    var token = localStorage.getItem(TOKEN_KEY);
-    if (!token) { alert('请先设置 Token（同步一次数据即可）'); return Promise.resolve(); }
-    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(shareConfig))));
-    return apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/share-config.json?ref=' + GH_BRANCH, token)
-      .then(function(res) {
-        var sha = (res.status === 200 && res.data.sha) ? res.data.sha : null;
-        var body = { message: '更新分享配置 - ' + new Date().toLocaleString('zh-CN'), content: b64, branch: GH_BRANCH };
-        if (sha) body.sha = sha;
-        return apiCall('PUT', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/share-config.json', token, body);
-      })
-      .then(function(res) {
-        if (res.status === 200 || res.status === 201) console.log('[GY] 分享配置已保存');
-        return res;
-      });
-  }
-
-  // ─── 渲染分享链接列表 ─────────────────────────────────────────────────
-  function renderShareList() {
-    var baseUrl = location.origin + location.pathname;
-    var list = document.getElementById('gy-slist');
-    var shares = (shareConfig && shareConfig.shares) || {};
-    var keys = Object.keys(shares);
-    if (keys.length === 0) {
-      list.innerHTML = '<p style="text-align:center;color:#94a3b8;font-size:.84rem;padding:1rem 0">暂无分享链接，请在上方创建</p>';
-      return;
-    }
-    list.innerHTML = '';
-    keys.forEach(function(id) {
-      var s = shares[id];
-      var url = baseUrl + '?id=' + encodeURIComponent(id);
-      var item = document.createElement('div');
-      item.className = 'gy-share-item';
-      item.innerHTML =
-        '<span class="gy-sid">' + id + '</span>' +
-        '<span class="gy-surl" title="' + url + '">' + url + '</span>' +
-        '<button class="gy-scopy" title="复制链接">\u{1F4CB}</button>' +
-        '<button class="gy-stoggle' + (s.canSync ? ' on' : '') + '" title="同步权限">' + (s.canSync ? '\u2705 可同步' : '\u{1F6AB} 仅查看') + '</button>' +
-        '<button class="gy-sdel" title="删除">\u{1F5D1}</button>';
-
-      item.querySelector('.gy-scopy').onclick = function() {
-        navigator.clipboard.writeText(url).then(function() {
-          showShareMsg('\u2705 已复制 ' + id + ' 的链接', 'ok');
-        });
-      };
-      item.querySelector('.gy-stoggle').onclick = function() {
-        s.canSync = !s.canSync;
-        saveShareConfig().then(function() {
-          renderShareList();
-          showShareMsg('\u2705 已更新 ' + id + ' 的权限', 'ok');
-        });
-      };
-      item.querySelector('.gy-sdel').onclick = function() {
-        if (confirm('确定删除"' + id + '"的分享链接？')) {
-          delete shares[id];
-          saveShareConfig().then(function() {
-            renderShareList();
-            showShareMsg('\u2705 已删除', 'ok');
-          });
-        }
-      };
-      list.appendChild(item);
-    });
-  }
-
-  // ─── 给同步权限用户的简化 UI ───────────────────────────────────────────
-  function setupSyncUI(isShareUser) {
-    if (!isShareUser) return;
-    var ha = document.querySelector('.header-actions');
-    if (!ha || ha.querySelector('.btn-sync')) return;
-    var syncBtn = document.createElement('button');
-    syncBtn.className = 'btn btn-sync';
-    syncBtn.textContent = '\u{1F504} 同步数据';
-    syncBtn.onclick = function() { showOverlay('sync'); };
-    ha.appendChild(syncBtn);
-  }
-
   // ─── 辅助函数 ──────────────────────────────────────────────────────────
   function showOverlay(type) {
     if (type === 'sync') {
@@ -6135,7 +5995,7 @@ root.render(React.createElement(Dashboard));
       var token = localStorage.getItem(TOKEN_KEY);
       tklEl.style.display = token ? 'inline-block' : 'none';
     }
-    if (type === 'share') { shareOverlay.classList.add('show'); renderShareList(); }
+    if (type === 'share') { shareOverlay.classList.add('show'); }
     if (type === 'token') tokenOverlay.classList.add('show');
   }
   function hideOverlay(type) {
@@ -6145,7 +6005,6 @@ root.render(React.createElement(Dashboard));
   }
   function showMsg(t, type) { var m = document.getElementById('gy-msg'); m.textContent = t; m.className = 'gy-msg show ' + type; }
   function hideMsg() { document.getElementById('gy-msg').className = 'gy-msg'; }
-  function showShareMsg(t, type) { var m = document.getElementById('gy-smsg'); m.textContent = t; m.className = 'gy-msg show ' + type; setTimeout(function(){ m.className = 'gy-msg'; }, 3000); }
   function showTokenMsg(t, type) { var m = document.getElementById('gy-tkmsg'); m.textContent = t; m.className = 'gy-msg show ' + type; }
 
   function apiCall(method, path, token, body) {
