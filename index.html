@@ -5519,8 +5519,8 @@ root.render(React.createElement(Dashboard));
   var GH_USER = 'junguo1';
   var GH_REPO = 'guyu-dashboard';
   var GH_BRANCH = 'main';
-  var OWNER_KEY = 'gy_owner';
-  var TOKEN_KEY = 'gy_token';
+  var OWNER_KEY = 'guyu_dashboard_owner';
+  var TOKEN_KEY = 'guyu_dashboard_token';
   var DATA_KEY = 'gy_dashboard_data';
   var FILE_KEY = 'gy_excel_b64';
   var ERRORS_KEY = 'gy_errors';
@@ -5530,9 +5530,12 @@ root.render(React.createElement(Dashboard));
   var params = new URLSearchParams(location.search);
   if (params.get('owner') === '1') {
     localStorage.setItem(OWNER_KEY, '1');
+    localStorage.setItem('gy_owner', '1'); // 同时写 v2 key
     history.replaceState({}, '', location.origin + location.pathname);
+    console.log('[GY] Owner 模式已激活');
   }
-  var isOwner = localStorage.getItem(OWNER_KEY) === '1';
+  var isOwner = localStorage.getItem(OWNER_KEY) === '1' || localStorage.getItem('gy_owner') === '1';
+  console.log('[GY] isOwner:', isOwner, '| key:', OWNER_KEY, '=', localStorage.getItem(OWNER_KEY));
 
   // ─── 错误日志系统 ───────────────────────────────────────────────────────
   var errorLogs = [];
@@ -5669,6 +5672,7 @@ root.render(React.createElement(Dashboard));
 
     ha.appendChild(syncBtn);
     ha.appendChild(shareBtn);
+    console.log('[GY] 按钮已注入');
   }
 
   // 首次注入 + MutationObserver 持续监听
