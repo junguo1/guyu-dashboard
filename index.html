@@ -5505,6 +5505,24 @@ root.render(React.createElement(Dashboard));
 
 <span id="recharts_measurement_span" aria-hidden="true" style="position: absolute; top: -20000px; left: 0px; padding: 0px; margin: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; white-space: pre; font-size: 10px; letter-spacing: normal;">¥1,200</span><script id="gy-v2-main">
 (function(){
+  // ─── 全局错误捕获（防止白屏）─────────────────────────────────────────
+  window.addEventListener('error', function(e) {
+    if (e.filename && e.message) {
+      console.error('[GY 错误]', e.message, '文件:', e.filename, '行:', e.lineno);
+      // 如果 root 容器是空的（React 崩溃），显示错误提示
+      setTimeout(function() {
+        var root = document.getElementById('root');
+        if (root && root.children.length === 0) {
+          root.innerHTML = '<div style="padding:40px;text-align:center;font-family:sans-serif">' +
+            '<h2 style="color:#dc2626">页面加载出错</h2>' +
+            '<p style="color:#64748b;margin:12px 0">错误: ' + e.message + '</p>' +
+            '<p style="color:#64748b">请尝试: <a href="#" onclick="localStorage.clear();sessionStorage.clear();location.reload();return false;" style="color:#2563eb">清除缓存并刷新</a></p>' +
+            '</div>';
+        }
+      }, 2000);
+    }
+  });
+
   // ─── 配置 ───────────────────────────────────────────────────────────────
   var GH_USER = 'junguo1';
   var GH_REPO = 'guyu-dashboard';
@@ -5514,7 +5532,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = '06b3802c9ff8ce59a25fd362b5714a4159215e63';
+  var BUILD_VERSION = '5f2d9c65a69daa2f03cd8542c3514372ed660b09';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -5727,6 +5745,14 @@ root.render(React.createElement(Dashboard));
   var SHA_KEY = 'gy_last_sha';
 
   function checkGitHubUpdate(isPoll) {
+    // 防止无限刷新循环：页面刚加载 10 秒内不触发 reload
+    var pageLoadTime = parseInt(sessionStorage.getItem('gy_page_load') || '0');
+    if (!pageLoadTime) {
+      pageLoadTime = Date.now();
+      sessionStorage.setItem('gy_page_load', String(pageLoadTime));
+    }
+    var justLoaded = (Date.now() - pageLoadTime) < 10000;
+
     // 使用 token（如有）避免 GitHub API 频率限制
     var token = localStorage.getItem(TOKEN_KEY) || null;
 
@@ -5751,8 +5777,10 @@ root.render(React.createElement(Dashboard));
             localStorage.setItem(DATA_KEY, jsonStr);
             localStorage.setItem(SHA_KEY, res.sha);
             console.log('[GY] 已加载最新数据：' + newData.meta.month + '月，' + newData.storeData.length + ' 家门店');
-            // 始终用 reload 确保 HTML 结构更新也能生效
-            location.reload();
+            // 页面刚加载时不刷新，避免无限循环；轮询时刷新以获取最新 HTML
+            if (!justLoaded) {
+              location.reload();
+            }
           }
         } else if (!isPoll) {
           console.log('[GY] 数据已是最新');
