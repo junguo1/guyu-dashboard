@@ -5675,7 +5675,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = '5c0ac440740ab23becc1c67c0b0d421a81239126';
+  var BUILD_VERSION = 'f4b0202725a3007efb445548c6591c873582ff35';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -5855,16 +5855,35 @@ root.render(React.createElement(Dashboard));
       try {
         var _XLSX = window.XLSX;
         if (_XLSX && result && result.commission && result.commission.baData) {
-          // 辅助函数：在 sheet 中查找列
+          // 辅助函数：扫描所有行找到表头行并返回列索引
           function _findCol(sheet, names) {
             if (!sheet || !sheet['!ref']) return -1;
             var range = _XLSX.utils.decode_range(sheet['!ref']);
-            for (var c = range.s.c; c <= range.e.c; c++) {
-              var cv = sheet[_XLSX.utils.encode_cell({r: range.s.r, c: c})];
-              if (cv && cv.v) {
-                var h = String(cv.v).replace(/[\s★☆○●◆◇]/g, '').trim();
-                for (var ni = 0; ni < names.length; ni++) {
-                  if (h.indexOf(names[ni]) >= 0) return c;
+            var maxScan = Math.min(range.s.r + 15, range.e.r);
+            for (var r = range.s.r; r <= maxScan; r++) {
+              for (var c = range.s.c; c <= range.e.c; c++) {
+                var cv = sheet[_XLSX.utils.encode_cell({r: r, c: c})];
+                if (cv && cv.v) {
+                  var h = String(cv.v).replace(/[\s★☆○●◆◇]/g, '').trim();
+                  for (var ni = 0; ni < names.length; ni++) {
+                    if (h.indexOf(names[ni]) >= 0) return c;
+                  }
+                }
+              }
+            }
+            return -1;
+          }
+          // 找到表头行索引
+          function _findHeaderRow(sheet, marker) {
+            if (!sheet || !sheet['!ref']) return -1;
+            var range = _XLSX.utils.decode_range(sheet['!ref']);
+            var maxScan = Math.min(range.s.r + 15, range.e.r);
+            for (var r = range.s.r; r <= maxScan; r++) {
+              for (var c = range.s.c; c <= range.e.c; c++) {
+                var cv = sheet[_XLSX.utils.encode_cell({r: r, c: c})];
+                if (cv && cv.v) {
+                  var h = String(cv.v).replace(/[\s★☆○●◆◇]/g, '').trim();
+                  if (h.indexOf(marker) >= 0) return r;
                 }
               }
             }
@@ -5885,7 +5904,16 @@ root.render(React.createElement(Dashboard));
             var s = String(val).trim();
             var m = s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
             if (m) return m[1] + '-' + String(m[2]).padStart(2,'0') + '-' + String(m[3]).padStart(2,'0');
-            return s.substring(0, 10);
+            return s.substring(0, 19);
+          }
+          function _parseMonth(val) {
+            if (!val) return null;
+            var s = String(val).trim();
+            var m = s.match(/(\d{4})[\/\-](\d{1,2})/);
+            if (!m) return null;
+            var y = parseInt(m[1]), mo = parseInt(m[2]);
+            var lastDay = new Date(y, mo, 0).getDate();
+            return { start: y + '/' + mo + '/1 00:00:00', end: y + '/' + mo + '/' + lastDay + ' 23:59:59' };
           }
 
           var _sn = wb.SheetNames.map(function(n){ return String(n).trim(); });
@@ -5900,11 +5928,12 @@ root.render(React.createElement(Dashboard));
           var _retail = _getSheet('零售单管理');
           var _orderDates = {};
           if (_retail) {
-            var _odCol = _findCol(_retail, ['订单日期','下单日期','下单时间','销售日期','订单时间','创建日期','创建时间']);
+            var _rHdr = _findHeaderRow(_retail, '订单编号');
+            var _odCol = _findCol(_retail, ['订单日期']);
             var _onCol = _findCol(_retail, ['订单编号']);
-            if (_odCol >= 0 && _onCol >= 0) {
+            if (_odCol >= 0 && _onCol >= 0 && _rHdr >= 0) {
               var _rRange = _XLSX.utils.decode_range(_retail['!ref']);
-              for (var _ri = _rRange.s.r + 1; _ri <= _rRange.e.r; _ri++) {
+              for (var _ri = _rHdr + 1; _ri <= _rRange.e.r; _ri++) {
                 var _ono = _cellVal(_retail, _ri, _onCol);
                 var _odv = _cellVal(_retail, _ri, _odCol);
                 if (_ono && _odv) _orderDates[_ono] = _fmtDate(_odv);
@@ -5917,11 +5946,12 @@ root.render(React.createElement(Dashboard));
           var _careWs = _getSheet('护理核销');
           var _hxDateMap = {};
           if (_careWs) {
+            var _cHdr = _findHeaderRow(_careWs, '核销单号');
             var _hxCol = _findCol(_careWs, ['核销单号']);
-            var _hdCol = _findCol(_careWs, ['核销日期','核销时间','核销完成日期','服务日期','服务时间','完成日期','完成时间']);
-            if (_hxCol >= 0 && _hdCol >= 0) {
+            var _hdCol = _findCol(_careWs, ['核销时间','核销日期','核销完成日期','服务日期','服务时间','完成日期','完成时间']);
+            if (_hxCol >= 0 && _hdCol >= 0 && _cHdr >= 0) {
               var _cRange = _XLSX.utils.decode_range(_careWs['!ref']);
-              for (var _ci = _cRange.s.r + 1; _ci <= _cRange.e.r; _ci++) {
+              for (var _ci = _cHdr + 1; _ci <= _cRange.e.r; _ci++) {
                 var _hxNo = _cellVal(_careWs, _ci, _hxCol);
                 var _hdv = _cellVal(_careWs, _ci, _hdCol);
                 if (_hxNo && _hdv) _hxDateMap[_hxNo] = _fmtDate(_hdv);
@@ -5930,13 +5960,55 @@ root.render(React.createElement(Dashboard));
             }
           }
 
-          // 3. 注入日期到提成明细数据
+          // 3. 从重点品贴花和护理手工费提取适用月份
+          window._gyDateConfig = { stickerMonths: {}, careMonths: {} };
+          var _stickerWs = _getSheet('重点品贴花');
+          if (_stickerWs) {
+            var _stHdr = _findHeaderRow(_stickerWs, 'G码');
+            var _stGCol = _findCol(_stickerWs, ['G码']);
+            var _stBarCol = _findCol(_stickerWs, ['69码']);
+            var _stNameCol = _findCol(_stickerWs, ['产品简称']);
+            var _stMonthCol = _findCol(_stickerWs, ['适用月份']);
+            if (_stHdr >= 0 && _stMonthCol >= 0) {
+              var _stRange = _XLSX.utils.decode_range(_stickerWs['!ref']);
+              for (var _si = _stHdr + 1; _si <= _stRange.e.r; _si++) {
+                var _month = _cellVal(_stickerWs, _si, _stMonthCol);
+                var _parsed = _parseMonth(_month);
+                if (!_parsed) continue;
+                if (_stGCol >= 0) { var _g = _cellVal(_stickerWs, _si, _stGCol); if (_g) window._gyDateConfig.stickerMonths[_g] = _parsed; }
+                if (_stBarCol >= 0) { var _b = _cellVal(_stickerWs, _si, _stBarCol); if (_b) window._gyDateConfig.stickerMonths[_b] = _parsed; }
+                if (_stNameCol >= 0) { var _n = _cellVal(_stickerWs, _si, _stNameCol); if (_n) window._gyDateConfig.stickerMonths[_n] = _parsed; }
+              }
+              console.log('[GY] 已提取 ' + Object.keys(window._gyDateConfig.stickerMonths).length + ' 个贴花适用月份');
+            }
+          }
+          var _careRateWs = _getSheet('护理手工费');
+          if (_careRateWs) {
+            var _crHdr = _findHeaderRow(_careRateWs, '护理编号');
+            var _crCodeCol = _findCol(_careRateWs, ['护理编号']);
+            var _crMonthCol = _findCol(_careRateWs, ['适用月份']);
+            if (_crHdr >= 0 && _crMonthCol >= 0 && _crCodeCol >= 0) {
+              var _crRange = _XLSX.utils.decode_range(_careRateWs['!ref']);
+              for (var _cri = _crHdr + 1; _cri <= _crRange.e.r; _cri++) {
+                var _code = _cellVal(_careRateWs, _cri, _crCodeCol);
+                var _cmonth = _cellVal(_careRateWs, _cri, _crMonthCol);
+                var _cparsed = _parseMonth(_cmonth);
+                if (_code && _cparsed) window._gyDateConfig.careMonths[_code] = _cparsed;
+              }
+              console.log('[GY] 已提取 ' + Object.keys(window._gyDateConfig.careMonths).length + ' 个护理适用月份');
+            }
+          }
+
+          // 4. 注入日期到提成明细数据
           var _baData = result.commission.baData;
           for (var _bi = 0; _bi < _baData.length; _bi++) {
             var _ba = _baData[_bi];
             if (_ba.stickerDetails) {
-              for (var _si = 0; _si < _ba.stickerDetails.length; _si++) {
-                var _sd = _ba.stickerDetails[_si];
+              for (var _si2 = 0; _si2 < _ba.stickerDetails.length; _si2++) {
+                var _sd = _ba.stickerDetails[_si2];
+                // 贴花适用月份 → 开始/结束时间
+                var _sMonth = window._gyDateConfig.stickerMonths[_sd.product] || window._gyDateConfig.stickerMonths[_sd.code] || null;
+                if (_sMonth) { _sd.monthStart = _sMonth.start; _sd.monthEnd = _sMonth.end; }
                 if (_sd.orders) {
                   for (var _oi = 0; _oi < _sd.orders.length; _oi++) {
                     if (!_sd.orders[_oi].orderDate) {
@@ -5952,6 +6024,9 @@ root.render(React.createElement(Dashboard));
                 if (!_cd.careDate) {
                   _cd.careDate = _hxDateMap[_cd.hxNo] || '';
                 }
+                // 护理适用月份 → 开始/结束时间
+                var _cMonth = window._gyDateConfig.careMonths[_cd.code] || null;
+                if (_cMonth) { _cd.monthStart = _cMonth.start; _cd.monthEnd = _cMonth.end; }
               }
             }
           }
@@ -6193,72 +6268,89 @@ root.render(React.createElement(Dashboard));
       XLSX.writeFile = function(wb, fname, opts) {
         try {
           if (fname && fname.indexOf('提成明细') >= 0 && wb.Sheets) {
-            // 贴花明细 sheet：追加"订单日期"列
+            var dateCfg = window._gyDateConfig || { stickerMonths: {}, careMonths: {} };
+            // === 贴花明细 sheet：追加 订单日期 + 开始时间 + 结束时间 ===
             var ws3 = wb.Sheets['重点品贴花明细'];
             if (ws3) {
               var range3 = XLSX.utils.decode_range(ws3['!ref']);
-              var dateCol3 = range3.e.c + 1;
-              // 写表头
-              var hdrCell3 = XLSX.utils.encode_cell({r: range3.s.r, c: dateCol3});
-              ws3[hdrCell3] = {t: 's', v: '订单日期'};
-              // 遍历数据行，从 DASHBOARD_DATA 中查找对应日期
+              var baseCol3 = range3.e.c + 1;
+              // 写3个新表头
+              ws3[XLSX.utils.encode_cell({r: range3.s.r, c: baseCol3})] = {t: 's', v: '订单日期'};
+              ws3[XLSX.utils.encode_cell({r: range3.s.r, c: baseCol3 + 1})] = {t: 's', v: '开始时间'};
+              ws3[XLSX.utils.encode_cell({r: range3.s.r, c: baseCol3 + 2})] = {t: 's', v: '结束时间'};
               if (typeof DASHBOARD_DATA !== 'undefined' && DASHBOARD_DATA.commission) {
                 var baData = DASHBOARD_DATA.commission.baData || [];
+                // 构建 orderNo→orderDate 和 product→{monthStart, monthEnd}
                 var orderDateMap = {};
+                var productMonthMap = {};
                 baData.forEach(function(ba) {
                   (ba.stickerDetails || []).forEach(function(sd) {
+                    if (sd.product) productMonthMap[sd.product] = { s: sd.monthStart || '', e: sd.monthEnd || '' };
                     (sd.orders || []).forEach(function(o) {
                       if (o.orderNo && o.orderDate) orderDateMap[o.orderNo] = o.orderDate;
                     });
                   });
                 });
-                var orderNoCol = -1;
+                var orderNoCol = -1, prodNameCol = -1;
                 for (var c = range3.s.c; c <= range3.e.c; c++) {
                   var hc = ws3[XLSX.utils.encode_cell({r: range3.s.r, c: c})];
-                  if (hc && hc.v === '订单编号') { orderNoCol = c; break; }
+                  if (hc && hc.v === '订单编号') orderNoCol = c;
+                  if (hc && hc.v === '商品名称') prodNameCol = c;
                 }
-                if (orderNoCol >= 0) {
-                  for (var r = range3.s.r + 1; r <= range3.e.r; r++) {
-                    var onCell = ws3[XLSX.utils.encode_cell({r: r, c: orderNoCol})];
-                    var orderNo = onCell ? String(onCell.v || '') : '';
-                    var dateCell = XLSX.utils.encode_cell({r: r, c: dateCol3});
-                    ws3[dateCell] = {t: 's', v: orderDateMap[orderNo] || ''};
+                for (var r = range3.s.r + 1; r <= range3.e.r; r++) {
+                  var onCell = ws3[XLSX.utils.encode_cell({r: r, c: orderNoCol >= 0 ? orderNoCol : 0})];
+                  var orderNo = onCell ? String(onCell.v || '') : '';
+                  ws3[XLSX.utils.encode_cell({r: r, c: baseCol3})] = {t: 's', v: orderDateMap[orderNo] || ''};
+                  if (prodNameCol >= 0) {
+                    var pnCell = ws3[XLSX.utils.encode_cell({r: r, c: prodNameCol})];
+                    var prodName = pnCell ? String(pnCell.v || '') : '';
+                    var pm = productMonthMap[prodName] || {};
+                    ws3[XLSX.utils.encode_cell({r: r, c: baseCol3 + 1})] = {t: 's', v: pm.s || ''};
+                    ws3[XLSX.utils.encode_cell({r: r, c: baseCol3 + 2})] = {t: 's', v: pm.e || ''};
                   }
                 }
               }
-              range3.e.c = dateCol3;
+              range3.e.c = baseCol3 + 2;
               ws3['!ref'] = XLSX.utils.encode_range(range3);
             }
-            // 护理手工费明细 sheet：追加"核销时间"列
+            // === 护理手工费明细 sheet：追加 核销时间 + 开始时间 + 结束时间 ===
             var ws2 = wb.Sheets['护理手工费明细'];
             if (ws2) {
               var range2 = XLSX.utils.decode_range(ws2['!ref']);
-              var dateCol2 = range2.e.c + 1;
-              var hdrCell2 = XLSX.utils.encode_cell({r: range2.s.r, c: dateCol2});
-              ws2[hdrCell2] = {t: 's', v: '核销时间'};
+              var baseCol2 = range2.e.c + 1;
+              ws2[XLSX.utils.encode_cell({r: range2.s.r, c: baseCol2})] = {t: 's', v: '核销时间'};
+              ws2[XLSX.utils.encode_cell({r: range2.s.r, c: baseCol2 + 1})] = {t: 's', v: '开始时间'};
+              ws2[XLSX.utils.encode_cell({r: range2.s.r, c: baseCol2 + 2})] = {t: 's', v: '结束时间'};
               if (typeof DASHBOARD_DATA !== 'undefined' && DASHBOARD_DATA.commission) {
                 var baData2 = DASHBOARD_DATA.commission.baData || [];
                 var hxDateMap = {};
+                var careCodeMonthMap = {};
                 baData2.forEach(function(ba) {
                   (ba.careDetails || []).forEach(function(cd) {
                     if (cd.hxNo && cd.careDate) hxDateMap[cd.hxNo] = cd.careDate;
+                    if (cd.code) careCodeMonthMap[cd.code] = { s: cd.monthStart || '', e: cd.monthEnd || '' };
                   });
                 });
-                var hxNoCol = -1;
+                var hxNoCol = -1, careCodeCol = -1;
                 for (var c2 = range2.s.c; c2 <= range2.e.c; c2++) {
                   var hc2 = ws2[XLSX.utils.encode_cell({r: range2.s.r, c: c2})];
-                  if (hc2 && hc2.v === '核销单号') { hxNoCol = c2; break; }
+                  if (hc2 && hc2.v === '核销单号') hxNoCol = c2;
+                  if (hc2 && hc2.v === '护理编号') careCodeCol = c2;
                 }
-                if (hxNoCol >= 0) {
-                  for (var r2 = range2.s.r + 1; r2 <= range2.e.r; r2++) {
-                    var hxCell = ws2[XLSX.utils.encode_cell({r: r2, c: hxNoCol})];
-                    var hxNo = hxCell ? String(hxCell.v || '') : '';
-                    var dCell2 = XLSX.utils.encode_cell({r: r2, c: dateCol2});
-                    ws2[dCell2] = {t: 's', v: hxDateMap[hxNo] || ''};
+                for (var r2 = range2.s.r + 1; r2 <= range2.e.r; r2++) {
+                  var hxCell = ws2[XLSX.utils.encode_cell({r: r2, c: hxNoCol >= 0 ? hxNoCol : 0})];
+                  var hxNo = hxCell ? String(hxCell.v || '') : '';
+                  ws2[XLSX.utils.encode_cell({r: r2, c: baseCol2})] = {t: 's', v: hxDateMap[hxNo] || ''};
+                  if (careCodeCol >= 0) {
+                    var ccCell = ws2[XLSX.utils.encode_cell({r: r2, c: careCodeCol})];
+                    var cc = ccCell ? String(ccCell.v || '') : '';
+                    var cm = careCodeMonthMap[cc] || {};
+                    ws2[XLSX.utils.encode_cell({r: r2, c: baseCol2 + 1})] = {t: 's', v: cm.s || ''};
+                    ws2[XLSX.utils.encode_cell({r: r2, c: baseCol2 + 2})] = {t: 's', v: cm.e || ''};
                   }
                 }
               }
-              range2.e.c = dateCol2;
+              range2.e.c = baseCol2 + 2;
               ws2['!ref'] = XLSX.utils.encode_range(range2);
             }
           }
@@ -6376,11 +6468,16 @@ root.render(React.createElement(Dashboard));
     if (typeof XLSX === 'undefined') { alert('SheetJS 未加载'); return; }
     var wb = XLSX.utils.book_new();
     var sheets = [
-      { name: '会员明细', headers: ['门店名称','会员姓名','手机号','会员等级','注册日期','累计积分','累计消费'] },
-      { name: '本月销售', headers: ['门店名称','销售日期','商品名称','数量','金额','导购员'] },
-      { name: '门店指标', headers: ['门店名称','常规柜台指标','特殊柜台指标','月度目标','完成进度'] },
-      { name: '重点品贴花', headers: ['G码','产品简称','商品组件数量','贴花奖金','开始时间','结束时间'] },
-      { name: '护理手工费', headers: ['护理编号','护理项目','手工费标准','开始时间','结束时间'] }
+      { name: '会员明细', headers: ['会员名称','会员昵称','性别','手机号','会员生日','来源渠道','细分渠道','营销细分渠道','渠道备注','入会日期','会员卡号','会员等级','距下一等级差额','会员体系','体系账户','当前总积分','可用积分','未生效积分','锁定积分','即将过期积分','最近过期日期','开卡门店编码','开卡门店','开卡导购编码','开卡导购','归属门店编码','归属门店','归属导购编码','归属导购','归属门店上级编码','归属门店上级','归属门店上级路径','国籍','省','市','县/)区','详细地址','首次购买时间','末次购买时间','customerId','绑定微信状态','微信昵称','绑定天猫状态','天猫账号','来源营销任务','会员状态','会员类别','无效原因','外部会员码','备注','推荐人卡号','推荐人姓名','推荐人手机号','微信UnionID','微信公众号OpenID','归属员工分配方式','天猫ouid','抖音openid'] },
+      { name: '护理核销', headers: ['核销单号','单据类型','核销时间','单据来源','核销单位编码','核销单位名称','业务员编码','业务员名称','会员手机号','会员名称','会员卡号','核销状态','服务人员编码','服务人员姓名','商品编码','商品名称','商品类型','计量单位','数量','核销单价','核销金额','实付核销金额','预约单号','关联单号'] },
+      { name: '本月销售', headers: ['订单编号','订单日期','订单类型','订单状态','门店编码','门店名称','BA编号','BA姓名','会员名称','会员手机号','会员卡号','商品名称','商品编码','商品条码','商品类目','零售单价','会员单价','配送方式','销售数量','已提数量','未提数量','单位','商品订单单价','订单商品金额','折前金额','优惠金额','商品实付金额'] },
+      { name: '上月销售', headers: ['订单编号','订单日期','订单类型','订单状态','门店编码','门店名称','BA编号','BA姓名','会员名称','会员手机号','会员卡号','商品名称','商品编码','商品条码','商品类目','零售单价','会员单价','配送方式','销售数量','已提数量','未提数量','单位','商品订单单价','订单商品金额','折前金额','优惠金额','商品实付金额'] },
+      { name: '门店指标', headers: ['序号','区域','编码','柜台名称','开业时间','门店导购编制','常规柜台指标','5月新会指标','山海销量指标','无垠四时销量指标','外泌素指标','护理指标','客单价指标'] },
+      { name: '导购指标', headers: ['店经理','三级部门','门店编码','员工账号','姓名','职位','入职日期','常规柜台指标','新会','山海支数指标','四时无垠指标','护理人数','客单价指标'] },
+      { name: '购买结构', headers: ['柜台编码','柜台名称','员工编码','员工姓名'] },
+      { name: '零售单管理', headers: ['订单编号','秉坤匹配支付单支付流水号','支付商户名称','订单日期','订单来源','配送方式','发货类型','销售单位编码','销售单位名称','销售人员编码','销售人员名称','会员卡号','会员等级','会员昵称','会员名称','会员手机号','会员归属导购编码','会员归属导购名称','明细oid','明细行号','商品编码','商品条码','规格编码','商品组名称（最高层级）','规格条码','商品单价','商品名称','商品品牌','商品分类','商品系列','商品数量','基本单位','商品实付金额','使用积分','订单使用总积分','商品状态','销售类型','订单类型YDR','活动名称','终端单据号','第三方单据号1','第三方单据号2','订单商品金额','运费','订单实付金额','审核状态','订单状态','开票状态','最近一次售后申请时间','最近一次退货状态','最近一次退款状态','最近一次售后申请单完成时间','售后状态','未提数量','已退商品数量','已退金额','支付状态','物流状态','支付方式','运输公司','快递单号','收货人姓名','收货人手机号','省份','城市','区域','收货地址','接收方销售单','营销溯源码','营销任务','分享员工','分享会员','推广员','积分兑换类型','卖家备注','买家备注','收货时间','完成时间','对账信息','对账信息（第三方单据号1）'] },
+      { name: '护理手工费', headers: ['护理编号','护理项目','手工费标准','适用月份'] },
+      { name: '重点品贴花', headers: ['G码','产品简称','商品组件数量','69码','贴花奖金','产品分类','适用月份'] }
     ];
     sheets.forEach(function(s) {
       var ws = XLSX.utils.aoa_to_sheet([s.headers]);
