@@ -5675,7 +5675,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = 'f4b0202725a3007efb445548c6591c873582ff35';
+  var BUILD_VERSION = '258920bbecb4b5e4a94841acc16172bd2df106e8';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -6134,9 +6134,200 @@ root.render(React.createElement(Dashboard));
     return raw.replace(/[^\x20-\x7E]/g, '').replace(/\s+/g, '').trim();
   }
 
+  // ─── 页面加载时从缓存 Excel 回填日期字段 ─────────────────────────────────
+  function _backfillDates() {
+    try {
+      if (typeof DASHBOARD_DATA === 'undefined' || !DASHBOARD_DATA.commission || !DASHBOARD_DATA.commission.baData) return;
+      var _baData = DASHBOARD_DATA.commission.baData;
+      var _needBackfill = false;
+      for (var _i = 0; _i < Math.min(_baData.length, 5); _i++) {
+        var _ba = _baData[_i];
+        if (_ba.stickerDetails) {
+          for (var _j = 0; _j < _ba.stickerDetails.length; _j++) {
+            if (_ba.stickerDetails[_j].orders && _ba.stickerDetails[_j].orders.length > 0) {
+              if (!_ba.stickerDetails[_j].orders[0].orderDate) { _needBackfill = true; break; }
+            }
+          }
+        }
+        if (_needBackfill) break;
+      }
+      if (!_needBackfill) { console.log('[GY] 日期字段已存在，无需回填'); return; }
+
+      var _b64 = null;
+      try { _b64 = localStorage.getItem('gy_excel_b64'); } catch(e){}
+      if (!_b64 || _b64.length < 1000) {
+        console.log('[GY] 无缓存Excel，无法回填日期。请重新导入Excel以获取日期数据');
+        return;
+      }
+      if (typeof XLSX === 'undefined') { console.log('[GY] XLSX未加载，跳过日期回填'); return; }
+
+      console.log('[GY] 检测到日期缺失，从缓存Excel回填...');
+      var _raw = atob(_b64);
+      var _bytes = new Uint8Array(_raw.length);
+      for (var _k = 0; _k < _raw.length; _k++) _bytes[_k] = _raw.charCodeAt(_k);
+      var _wb = XLSX.read(_bytes, {type: 'array', cellDates: false});
+
+      function _sn(name) {
+        for (var i = 0; i < _wb.SheetNames.length; i++) {
+          if (String(_wb.SheetNames[i]).trim() === name) return _wb.Sheets[_wb.SheetNames[i]];
+        }
+        return null;
+      }
+      function _fc(ws, names) {
+        if (!ws || !ws['!ref']) return -1;
+        var rng = XLSX.utils.decode_range(ws['!ref']);
+        var mx = Math.min(rng.s.r + 15, rng.e.r);
+        for (var r = rng.s.r; r <= mx; r++) {
+          for (var c = rng.s.c; c <= rng.e.c; c++) {
+            var cv = ws[XLSX.utils.encode_cell({r:r,c:c})];
+            if (cv && cv.v) {
+              var h = String(cv.v).replace(/[\s★☆○●◆◇]/g,'').trim();
+              for (var ni = 0; ni < names.length; ni++) { if (h.indexOf(names[ni]) >= 0) return c; }
+            }
+          }
+        }
+        return -1;
+      }
+      function _fhr(ws, mk) {
+        if (!ws || !ws['!ref']) return -1;
+        var rng = XLSX.utils.decode_range(ws['!ref']);
+        var mx = Math.min(rng.s.r + 15, rng.e.r);
+        for (var r = rng.s.r; r <= mx; r++) {
+          for (var c = rng.s.c; c <= rng.e.c; c++) {
+            var cv = ws[XLSX.utils.encode_cell({r:r,c:c})];
+            if (cv && cv.v && String(cv.v).replace(/[\s★☆○●◆◇]/g,'').trim().indexOf(mk) >= 0) return r;
+          }
+        }
+        return -1;
+      }
+      function _cv(ws, r, c) {
+        var v = ws[XLSX.utils.encode_cell({r:r,c:c})];
+        return v ? (v.w || String(v.v)) : '';
+      }
+      function _fd(val) {
+        if (!val) return '';
+        if (typeof val === 'number') {
+          var d = new Date((val - 25569) * 86400000);
+          if (!isNaN(d.getTime())) return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        }
+        var s = String(val).trim();
+        var m = s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+        if (m) return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
+        return s.substring(0, 19);
+      }
+      function _pm(val) {
+        if (!val) return null;
+        var m = String(val).trim().match(/(\d{4})[\/\-](\d{1,2})/);
+        if (!m) return null;
+        var y = parseInt(m[1]), mo = parseInt(m[2]), ld = new Date(y, mo, 0).getDate();
+        return {start: y+'/'+mo+'/1 00:00:00', end: y+'/'+mo+'/'+ld+' 23:59:59'};
+      }
+
+      // 零售单管理 → 订单日期
+      var _retail = _sn('零售单管理');
+      var _odMap = {};
+      if (_retail) {
+        var _hdr = _fhr(_retail, '订单编号');
+        var _onc = _fc(_retail, ['订单编号']);
+        var _odc = _fc(_retail, ['订单日期']);
+        if (_hdr >= 0 && _onc >= 0 && _odc >= 0) {
+          var rng = XLSX.utils.decode_range(_retail['!ref']);
+          for (var r = _hdr+1; r <= rng.e.r; r++) {
+            var ono = _cv(_retail, r, _onc), odv = _cv(_retail, r, _odc);
+            if (ono && odv) _odMap[ono] = _fd(odv);
+          }
+        }
+      }
+
+      // 护理核销 → 核销时间
+      var _careWs = _sn('护理核销');
+      var _hxMap = {};
+      if (_careWs) {
+        var _chdr = _fhr(_careWs, '核销单号');
+        var _hxc = _fc(_careWs, ['核销单号']);
+        var _hdc = _fc(_careWs, ['核销时间']);
+        if (_chdr >= 0 && _hxc >= 0 && _hdc >= 0) {
+          var crng = XLSX.utils.decode_range(_careWs['!ref']);
+          for (var r2 = _chdr+1; r2 <= crng.e.r; r2++) {
+            var hxNo = _cv(_careWs, r2, _hxc), hdv = _cv(_careWs, r2, _hdc);
+            if (hxNo && hdv) _hxMap[hxNo] = _fd(hdv);
+          }
+        }
+      }
+
+      // 适用月份
+      var _cfg = {stickerMonths:{}, careMonths:{}};
+      var _stWs = _sn('重点品贴花');
+      if (_stWs) {
+        var _shdr = _fhr(_stWs, 'G码');
+        var _gc = _fc(_stWs, ['G码']), _bc = _fc(_stWs, ['69码']);
+        var _nc = _fc(_stWs, ['产品简称']), _mc = _fc(_stWs, ['适用月份']);
+        if (_shdr >= 0 && _mc >= 0) {
+          var srng = XLSX.utils.decode_range(_stWs['!ref']);
+          for (var r3 = _shdr+1; r3 <= srng.e.r; r3++) {
+            var parsed = _pm(_cv(_stWs, r3, _mc));
+            if (!parsed) continue;
+            if (_gc >= 0) { var g = _cv(_stWs,r3,_gc); if(g) _cfg.stickerMonths[g] = parsed; }
+            if (_bc >= 0) { var b = _cv(_stWs,r3,_bc); if(b) _cfg.stickerMonths[b] = parsed; }
+            if (_nc >= 0) { var n = _cv(_stWs,r3,_nc); if(n) _cfg.stickerMonths[n] = parsed; }
+          }
+        }
+      }
+      var _crWs = _sn('护理手工费');
+      if (_crWs) {
+        var _crhdr = _fhr(_crWs, '护理编号');
+        var _crc = _fc(_crWs, ['护理编号']), _cmc = _fc(_crWs, ['适用月份']);
+        if (_crhdr >= 0 && _crc >= 0 && _cmc >= 0) {
+          var crrng = XLSX.utils.decode_range(_crWs['!ref']);
+          for (var r4 = _crhdr+1; r4 <= crrng.e.r; r4++) {
+            var code = _cv(_crWs,r4,_crc), cp = _pm(_cv(_crWs,r4,_cmc));
+            if (code && cp) _cfg.careMonths[code] = cp;
+          }
+        }
+      }
+
+      // 注入到数据
+      var _odCnt = 0, _hxCnt = 0;
+      for (var bi = 0; bi < _baData.length; bi++) {
+        var ba = _baData[bi];
+        if (ba.stickerDetails) {
+          for (var si = 0; si < ba.stickerDetails.length; si++) {
+            var sd = ba.stickerDetails[si];
+            var sm = _cfg.stickerMonths[sd.product] || _cfg.stickerMonths[sd.code] || null;
+            if (sm) { sd.monthStart = sm.start; sd.monthEnd = sm.end; }
+            if (sd.orders) {
+              for (var oi = 0; oi < sd.orders.length; oi++) {
+                if (!sd.orders[oi].orderDate) {
+                  sd.orders[oi].orderDate = _odMap[sd.orders[oi].orderNo] || '';
+                  if (sd.orders[oi].orderDate) _odCnt++;
+                }
+              }
+            }
+          }
+        }
+        if (ba.careDetails) {
+          for (var ci = 0; ci < ba.careDetails.length; ci++) {
+            var cd = ba.careDetails[ci];
+            if (!cd.careDate) {
+              cd.careDate = _hxMap[cd.hxNo] || '';
+              if (cd.careDate) _hxCnt++;
+            }
+            var cm = _cfg.careMonths[cd.code] || null;
+            if (cm) { cd.monthStart = cm.start; cd.monthEnd = cm.end; }
+          }
+        }
+      }
+      window._gyDateConfig = _cfg;
+      console.log('[GY] 日期回填完成：订单日期 ' + _odCnt + ' 条，核销时间 ' + _hxCnt + ' 条');
+    } catch(e) {
+      console.warn('[GY] 日期回填失败:', e.message);
+    }
+  }
+
   // ─── 非拥有者到此为止 ──────────────────────────────────────────────────
   if (!isOwner) {
     autoLoadFromGitHub();
+    setTimeout(function() { _backfillDates(); }, 1500);
     return;
   }
 
@@ -6802,10 +6993,12 @@ root.render(React.createElement(Dashboard));
     } catch(e) {
       console.warn('[GY] React 重渲染失败:', e.message);
     }
+    setTimeout(function() { _backfillDates(); }, 1000);
   });
 
   // ─── 自动加载（拥有者也检查 GitHub 最新版本）────────────────────────
   autoLoadFromGitHub();
+  setTimeout(function() { _backfillDates(); }, 1500);
 
   // ─── 拦截控制台错误 ───────────────────────────────────────────────────
   var _origConsoleError = console.error;
