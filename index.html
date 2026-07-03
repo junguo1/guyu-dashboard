@@ -5675,7 +5675,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = '3ef7a3f8b63b71067eb001100a7c3b8874397a8b';
+  var BUILD_VERSION = '488984f140ac65128ab7f3c861be48951452fa30';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -5779,25 +5779,24 @@ root.render(React.createElement(Dashboard));
           if (window._gyImportDone || checkCount > 300) {
             clearInterval(checkDone);
             if (window._gyImportSuccess) {
-              showProgress('\u2705 导入完成！正在自动同步到线上...', 100);
               // 拥有者且有 token 时，自动同步到 GitHub
               var _autoToken = localStorage.getItem(TOKEN_KEY);
               if (isOwner && _autoToken && _autoToken.length > 10) {
+                showProgress('\u2705 导入完成！正在自动同步...', 100);
                 setTimeout(function() {
+                  hideProgress();
                   _autoToken = sanitizeToken(_autoToken);
                   if (_autoToken.length > 10) {
                     doSync(_autoToken);
                   } else {
-                    showProgress('\u2705 导入完成！请点击"同步数据"推送到线上', 100);
-                    hideProgress();
+                    showOverlay('sync');
                   }
-                }, 500);
+                }, 1000);
               } else if (isOwner) {
                 showProgress('\u2705 导入完成！请点击"同步数据"推送到线上', 100);
-                hideProgress();
-                // 自动弹出同步框
-                setTimeout(function() { showOverlay('sync'); }, 800);
+                setTimeout(function() { hideProgress(); showOverlay('sync'); }, 1500);
               } else {
+                showProgress('\u2705 导入完成！', 100);
                 hideProgress();
               }
             } else {
@@ -5842,19 +5841,22 @@ root.render(React.createElement(Dashboard));
           if (window._gyImportDone || checkCount2 > 300) {
             clearInterval(checkDone);
             if (window._gyImportSuccess) {
-              showProgress('\u2705 导入完成！正在自动同步到线上...', 100);
               var _autoToken2 = localStorage.getItem(TOKEN_KEY);
               if (isOwner && _autoToken2 && _autoToken2.length > 10) {
+                showProgress('\u2705 导入完成！正在自动同步...', 100);
                 setTimeout(function() {
+                  hideProgress();
                   _autoToken2 = sanitizeToken(_autoToken2);
                   if (_autoToken2.length > 10) { doSync(_autoToken2); }
-                  else { showProgress('\u2705 导入完成！请点击"同步数据"推送到线上', 100); hideProgress(); }
-                }, 500);
+                  else { showOverlay('sync'); }
+                }, 1000);
               } else if (isOwner) {
                 showProgress('\u2705 导入完成！请点击"同步数据"推送到线上', 100);
+                setTimeout(function() { hideProgress(); showOverlay('sync'); }, 1500);
+              } else {
+                showProgress('\u2705 导入完成！', 100);
                 hideProgress();
-                setTimeout(function() { showOverlay('sync'); }, 800);
-              } else { hideProgress(); }
+              }
             } else {
               showProgress(checkCount2 > 300 ? '\u26A0\uFE0F 导入超时' : '\u274C 导入失败', 100);
               hideProgress();
@@ -6896,7 +6898,13 @@ root.render(React.createElement(Dashboard));
   });
 
   // ─── 核心同步：上传当前缓存数据到 GitHub ──────────────────────────────
+  var _syncing = false;
   function doSync(token) {
+    if (_syncing) {
+      console.warn('[GY] 同步正在进行中，跳过重复调用');
+      return;
+    }
+    _syncing = true;
     var sb = document.getElementById('gy-sb');
     var pw = document.getElementById('gy-pw');
     var pf = document.getElementById('gy-pf');
@@ -7000,6 +7008,7 @@ root.render(React.createElement(Dashboard));
       .finally(function() {
         sb.disabled = false;
         sb.textContent = '\u{1F504} 一键同步';
+        _syncing = false;
       });
   }
 
