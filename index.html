@@ -5678,7 +5678,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = '4504c512226f9e80e9d2d3a2b03cd0f93154c45c';
+  var BUILD_VERSION = 'a9bc673931d2eea08951d7a35daf1f0fe190a338';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -6134,6 +6134,8 @@ root.render(React.createElement(Dashboard));
           var json = JSON.stringify(result);
           if (json.length < MAX_STORAGE) {
             localStorage.setItem(DATA_KEY, json);
+            // 标记本地数据版本时间戳，防止 autoLoad 用旧数据覆盖
+            localStorage.setItem('gy_local_version', String(Date.now()));
             console.log('[GY] 数据已持久化 (' + (json.length / 1024).toFixed(0) + ' KB)');
           }
         } catch(e) {
@@ -6174,6 +6176,13 @@ root.render(React.createElement(Dashboard));
     }
     var justLoaded = (Date.now() - pageLoadTime) < 10000;
 
+    // 保护本地新导入数据：如果刚导入还未同步，跳过远程检查（防止旧数据覆盖）
+    var localVer = parseInt(localStorage.getItem('gy_local_version') || '0');
+    if (localVer && (Date.now() - localVer) < 120000) {
+      if (!isPoll) console.log('[GY] 本地有未同步的新数据，跳过远程检查');
+      return;
+    }
+
     var storedEtag = localStorage.getItem(SHA_KEY) || '';
     var token = localStorage.getItem(TOKEN_KEY) || null;
 
@@ -6205,6 +6214,25 @@ root.render(React.createElement(Dashboard));
           var jsonStr = decodeURIComponent(escape(atob(res.content)));
           var newData = JSON.parse(jsonStr);
           if (newData && newData.meta && newData.storeData) {
+            // 与本地数据比对，避免用旧数据覆盖新数据
+            var currentData = localStorage.getItem(DATA_KEY);
+            if (currentData && currentData === jsonStr) {
+              if (newEtag) localStorage.setItem(SHA_KEY, newEtag);
+              if (!isPoll) console.log('[GY] 数据已是最新（API 内容比对）');
+              return;
+            }
+            // 额外保护：如果远程数据的 dataCutoff 比本地旧，不覆盖
+            if (currentData) {
+              try {
+                var localData = JSON.parse(currentData);
+                if (localData.meta && localData.meta.dataCutoff && newData.meta.dataCutoff &&
+                    localData.meta.dataCutoff > newData.meta.dataCutoff) {
+                  if (newEtag) localStorage.setItem(SHA_KEY, newEtag);
+                  console.log('[GY] 远程数据较旧，保留本地数据');
+                  return;
+                }
+              } catch(cmpErr) {}
+            }
             localStorage.setItem(DATA_KEY, jsonStr);
             if (newEtag) localStorage.setItem(SHA_KEY, newEtag);
             console.log('[GY] 已加载最新数据：' + newData.meta.month + '月，' + newData.storeData.length + ' 家门店');
@@ -7097,6 +7125,8 @@ root.render(React.createElement(Dashboard));
 
           // 清除本地 ETag 缓存，下次轮询会检测到新数据
           localStorage.removeItem('gy_last_sha');
+          // 同步完成，解除本地保护（允许下次 autoLoad 正常检测）
+          localStorage.removeItem('gy_local_version');
 
           setTimeout(function(){ pw.classList.remove('show'); pf.style.width = '0%'; }, 3000);
         } else {
