@@ -5675,7 +5675,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = '258920bbecb4b5e4a94841acc16172bd2df106e8';
+  var BUILD_VERSION = 'f38e11457a48c6bbb4a6d85fc5afc98d1d8f6b3e';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -5779,11 +5779,31 @@ root.render(React.createElement(Dashboard));
           if (window._gyImportDone || checkCount > 300) {
             clearInterval(checkDone);
             if (window._gyImportSuccess) {
-              showProgress('\u2705 导入完成！可点击"同步数据"推送到线上', 100);
+              showProgress('\u2705 导入完成！正在自动同步到线上...', 100);
+              // 拥有者且有 token 时，自动同步到 GitHub
+              var _autoToken = localStorage.getItem(TOKEN_KEY);
+              if (isOwner && _autoToken && _autoToken.length > 10) {
+                setTimeout(function() {
+                  _autoToken = sanitizeToken(_autoToken);
+                  if (_autoToken.length > 10) {
+                    doSync(_autoToken);
+                  } else {
+                    showProgress('\u2705 导入完成！请点击"同步数据"推送到线上', 100);
+                    hideProgress();
+                  }
+                }, 500);
+              } else if (isOwner) {
+                showProgress('\u2705 导入完成！请点击"同步数据"推送到线上', 100);
+                hideProgress();
+                // 自动弹出同步框
+                setTimeout(function() { showOverlay('sync'); }, 800);
+              } else {
+                hideProgress();
+              }
             } else {
               showProgress(checkCount > 300 ? '\u26A0\uFE0F 导入超时' : '\u274C 导入失败', 100);
+              hideProgress();
             }
-            hideProgress();
             window._gyImportDone = false;
             window._gyImportSuccess = false;
           }
@@ -5821,8 +5841,24 @@ root.render(React.createElement(Dashboard));
           checkCount2++;
           if (window._gyImportDone || checkCount2 > 300) {
             clearInterval(checkDone);
-            showProgress(window._gyImportSuccess ? '\u2705 导入完成！' : (checkCount2 > 300 ? '\u26A0\uFE0F 导入超时' : '\u274C 导入失败'), 100);
-            hideProgress();
+            if (window._gyImportSuccess) {
+              showProgress('\u2705 导入完成！正在自动同步到线上...', 100);
+              var _autoToken2 = localStorage.getItem(TOKEN_KEY);
+              if (isOwner && _autoToken2 && _autoToken2.length > 10) {
+                setTimeout(function() {
+                  _autoToken2 = sanitizeToken(_autoToken2);
+                  if (_autoToken2.length > 10) { doSync(_autoToken2); }
+                  else { showProgress('\u2705 导入完成！请点击"同步数据"推送到线上', 100); hideProgress(); }
+                }, 500);
+              } else if (isOwner) {
+                showProgress('\u2705 导入完成！请点击"同步数据"推送到线上', 100);
+                hideProgress();
+                setTimeout(function() { showOverlay('sync'); }, 800);
+              } else { hideProgress(); }
+            } else {
+              showProgress(checkCount2 > 300 ? '\u26A0\uFE0F 导入超时' : '\u274C 导入失败', 100);
+              hideProgress();
+            }
             window._gyImportDone = false;
             window._gyImportSuccess = false;
           }
@@ -6085,8 +6121,10 @@ root.render(React.createElement(Dashboard));
     var token = localStorage.getItem(TOKEN_KEY) || null;
 
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH);
+    // 添加时间戳绕过 CDN 缓存
+    xhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH + '&_t=' + Date.now());
     xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+    xhr.setRequestHeader('Cache-Control', 'no-cache');
     if (token) xhr.setRequestHeader('Authorization', 'token ' + sanitizeToken(token));
     xhr.timeout = 10000;
     xhr.onload = function() {
@@ -6105,9 +6143,14 @@ root.render(React.createElement(Dashboard));
             localStorage.setItem(DATA_KEY, jsonStr);
             localStorage.setItem(SHA_KEY, res.sha);
             console.log('[GY] 已加载最新数据：' + newData.meta.month + '月，' + newData.storeData.length + ' 家门店');
-            // 页面刚加载时不刷新，避免无限循环；轮询时刷新以获取最新 HTML
-            if (!justLoaded) {
-              location.reload();
+            // 优先使用事件通知方式实时更新 React 组件（无需刷新页面）
+            try {
+              var evt = new CustomEvent('gy-data-updated', { detail: newData });
+              window.dispatchEvent(evt);
+              console.log('[GY] 已通过事件通知实时更新数据');
+            } catch(ex) {
+              // 事件通知失败时回退到页面刷新
+              if (!justLoaded) { location.reload(); }
             }
           }
         } else if (!isPoll) {
@@ -6124,8 +6167,8 @@ root.render(React.createElement(Dashboard));
 
   function autoLoadFromGitHub() {
     checkGitHubUpdate(false);
-    // 每 2 分钟检查一次更新
-    setInterval(function() { checkGitHubUpdate(true); }, 120000);
+    // 每 30 秒检查一次更新（管理员实时性要求更高）
+    setInterval(function() { checkGitHubUpdate(true); }, 30000);
   }
 
   // ─── Token 清理（移除不可见字符和非 ASCII 字符）────────────────────────
