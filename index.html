@@ -5675,7 +5675,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = '7e72f30b2e2de43f4c4bf92bb3e88d68c2f4b4c7';
+  var BUILD_VERSION = '3ef7a3f8b63b71067eb001100a7c3b8874397a8b';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -6117,58 +6117,102 @@ root.render(React.createElement(Dashboard));
     }
     var justLoaded = (Date.now() - pageLoadTime) < 10000;
 
+    var storedEtag = localStorage.getItem(SHA_KEY) || '';
+
+    // ── 主路径：GitHub API + If-None-Match（304 不消耗配额）──
+    var apiXhr = new XMLHttpRequest();
+    apiXhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH + '&_t=' + Date.now());
+    apiXhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+    apiXhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
+    if (storedEtag) apiXhr.setRequestHeader('If-None-Match', storedEtag);
+    var token = localStorage.getItem(TOKEN_KEY) || null;
+    if (token) apiXhr.setRequestHeader('Authorization', 'token ' + sanitizeToken(token));
+    apiXhr.timeout = 10000;
+    apiXhr.onload = function() {
+      // 304 = 未修改，不消耗配额
+      if (apiXhr.status === 304) {
+        if (!isPoll) console.log('[GY] 数据已是最新（API 304）');
+        return;
+      }
+      if (apiXhr.status === 200) {
+        try {
+          var res = JSON.parse(apiXhr.responseText);
+          if (!res.content) return;
+          var newEtag = apiXhr.getResponseHeader('ETag') || res.sha || '';
+          var jsonStr = decodeURIComponent(escape(atob(res.content)));
+          var newData = JSON.parse(jsonStr);
+          if (newData && newData.meta && newData.storeData) {
+            localStorage.setItem(DATA_KEY, jsonStr);
+            if (newEtag) localStorage.setItem(SHA_KEY, newEtag);
+            console.log('[GY] 已加载最新数据：' + newData.meta.month + '月，' + newData.storeData.length + ' 家门店');
+            try {
+              window.dispatchEvent(new CustomEvent('gy-data-updated', { detail: newData }));
+              console.log('[GY] 已通过事件通知实时更新数据');
+            } catch(ex) {
+              if (!justLoaded) { location.reload(); }
+            }
+          }
+        } catch(e) {
+          console.warn('[GY] API 数据解析失败:', e.message);
+        }
+        return;
+      }
+      // 403/429 = 频率限制，降级到 raw URL
+      if (apiXhr.status === 403 || apiXhr.status === 429) {
+        console.warn('[GY] API 频率限制，降级到 raw URL');
+        fetchFromRaw(isPoll, justLoaded, storedEtag);
+      }
+    };
+    apiXhr.onerror = function() {
+      // 网络错误，降级到 raw URL
+      fetchFromRaw(isPoll, justLoaded, storedEtag);
+    };
+    apiXhr.ontimeout = function() {
+      fetchFromRaw(isPoll, justLoaded, storedEtag);
+    };
+    apiXhr.send();
+  }
+
+  // ── 降级路径：raw.githubusercontent.com ──
+  function fetchFromRaw(isPoll, justLoaded, storedEtag) {
     var xhr = new XMLHttpRequest();
-    // 使用 raw.githubusercontent.com 避免 API 频率限制（无 token 用户 60次/小时）
     var rawUrl = 'https://raw.githubusercontent.com/' + GH_USER + '/' + GH_REPO + '/' + GH_BRANCH + '/data.json?_t=' + Date.now();
     xhr.open('GET', rawUrl);
-    xhr.setRequestHeader('Cache-Control', 'no-cache');
+    xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
+    xhr.setRequestHeader('Pragma', 'no-cache');
     xhr.timeout = 10000;
     xhr.onload = function() {
       if (xhr.status !== 200) return;
       try {
         var jsonStr = xhr.responseText;
-        // 用 ETag 或内容哈希检测变化
         var etag = xhr.getResponseHeader('ETag') || '';
-        var storedEtag = localStorage.getItem(SHA_KEY);
-
-        // 尝试解析数据验证有效性
         var newData = JSON.parse(jsonStr);
         if (!newData || !newData.meta || !newData.storeData) return;
-
-        // 如果 ETag 相同则跳过
         if (etag && storedEtag === etag) {
-          if (!isPoll) console.log('[GY] 数据已是最新');
+          if (!isPoll) console.log('[GY] 数据已是最新（raw）');
           return;
         }
-
-        // ETag 不同或无 ETag 时，比较内容
         var currentData = localStorage.getItem(DATA_KEY);
         if (currentData && currentData === jsonStr) {
-          // 内容相同，保存 ETag 避免下次重复比较
           if (etag) localStorage.setItem(SHA_KEY, etag);
-          if (!isPoll) console.log('[GY] 数据已是最新');
+          if (!isPoll) console.log('[GY] 数据已是最新（raw 内容比对）');
           return;
         }
-
-        // 有新数据
-        console.log('[GY] 检测到数据更新');
+        console.log('[GY] 检测到数据更新（raw）');
         localStorage.setItem(DATA_KEY, jsonStr);
         if (etag) localStorage.setItem(SHA_KEY, etag);
         console.log('[GY] 已加载最新数据：' + newData.meta.month + '月，' + newData.storeData.length + ' 家门店');
-        // 优先使用事件通知方式实时更新 React 组件（无需刷新页面）
         try {
-          var evt = new CustomEvent('gy-data-updated', { detail: newData });
-          window.dispatchEvent(evt);
-          console.log('[GY] 已通过事件通知实时更新数据');
+          window.dispatchEvent(new CustomEvent('gy-data-updated', { detail: newData }));
         } catch(ex) {
           if (!justLoaded) { location.reload(); }
         }
       } catch(e) {
-        console.warn('[GY] 数据加载失败:', e.message);
+        console.warn('[GY] raw 数据加载失败:', e.message);
       }
     };
-    xhr.onerror = function() { console.warn('[GY] 网络错误'); };
-    xhr.ontimeout = function() { console.warn('[GY] 请求超时'); };
+    xhr.onerror = function() { console.warn('[GY] raw 网络错误'); };
+    xhr.ontimeout = function() { console.warn('[GY] raw 请求超时'); };
     xhr.send();
   }
 
@@ -6891,17 +6935,36 @@ root.render(React.createElement(Dashboard));
     var b64 = btoa(unescape(encodeURIComponent(dataJson)));
 
     // 使用 Promise.resolve().then() 确保同步错误也被 catch 捕获
+    // 重试函数：SHA 冲突时重新获取 SHA 再上传
+    function uploadWithRetry(retryCount) {
+      return apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH + '&_t=' + Date.now(), token)
+        .then(function(res) {
+          var sha = (res.status === 200 && res.data.sha) ? res.data.sha : null;
+          var body = { message: 'sync data ' + new Date().toISOString().slice(0, 19), content: b64, branch: GH_BRANCH };
+          if (sha) body.sha = sha;
+          if (retryCount === 0) {
+            pf.style.width = '50%';
+            pt.textContent = '上传数据...';
+          } else {
+            pt.textContent = '重试上传 (' + retryCount + ')...';
+          }
+          return apiCall('PUT', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json', token, body)
+            .then(function(putRes) {
+              // SHA 冲突（409/422）且还有重试次数：等 1 秒后重新获取 SHA 再上传
+              if ((putRes.status === 409 || putRes.status === 422) && retryCount < 2) {
+                console.warn('[GY] SHA 冲突，1秒后重试...');
+                return new Promise(function(resolve) {
+                  setTimeout(function() { resolve(uploadWithRetry(retryCount + 1)); }, 1000);
+                });
+              }
+              return putRes;
+            });
+        });
+    }
+
     Promise.resolve().then(function() {
-      return apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH, token);
+      return uploadWithRetry(0);
     })
-      .then(function(res) {
-        var sha = (res.status === 200 && res.data.sha) ? res.data.sha : null;
-        var body = { message: 'sync data ' + new Date().toISOString().slice(0, 19), content: b64, branch: GH_BRANCH };
-        if (sha) body.sha = sha;
-        pf.style.width = '50%';
-        pt.textContent = '上传数据...';
-        return apiCall('PUT', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json', token, body);
-      })
       .then(function(res) {
         if (res.status === 200 || res.status === 201) {
           pf.style.width = '100%';
