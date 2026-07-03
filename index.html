@@ -5675,7 +5675,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = 'f38e11457a48c6bbb4a6d85fc5afc98d1d8f6b3e';
+  var BUILD_VERSION = '7e72f30b2e2de43f4c4bf92bb3e88d68c2f4b4c7';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -6117,44 +6117,51 @@ root.render(React.createElement(Dashboard));
     }
     var justLoaded = (Date.now() - pageLoadTime) < 10000;
 
-    // 使用 token（如有）避免 GitHub API 频率限制
-    var token = localStorage.getItem(TOKEN_KEY) || null;
-
     var xhr = new XMLHttpRequest();
-    // 添加时间戳绕过 CDN 缓存
-    xhr.open('GET', 'https://api.github.com/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH + '&_t=' + Date.now());
-    xhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
+    // 使用 raw.githubusercontent.com 避免 API 频率限制（无 token 用户 60次/小时）
+    var rawUrl = 'https://raw.githubusercontent.com/' + GH_USER + '/' + GH_REPO + '/' + GH_BRANCH + '/data.json?_t=' + Date.now();
+    xhr.open('GET', rawUrl);
     xhr.setRequestHeader('Cache-Control', 'no-cache');
-    if (token) xhr.setRequestHeader('Authorization', 'token ' + sanitizeToken(token));
     xhr.timeout = 10000;
     xhr.onload = function() {
       if (xhr.status !== 200) return;
       try {
-        var res = JSON.parse(xhr.responseText);
-        if (!res.sha || !res.content) return;
+        var jsonStr = xhr.responseText;
+        // 用 ETag 或内容哈希检测变化
+        var etag = xhr.getResponseHeader('ETag') || '';
+        var storedEtag = localStorage.getItem(SHA_KEY);
 
-        var storedSha = localStorage.getItem(SHA_KEY);
-        if (storedSha !== res.sha) {
-          // GitHub 有新数据
-          console.log('[GY] 检测到数据更新');
-          var jsonStr = decodeURIComponent(escape(atob(res.content)));
-          var newData = JSON.parse(jsonStr);
-          if (newData && newData.meta && newData.storeData) {
-            localStorage.setItem(DATA_KEY, jsonStr);
-            localStorage.setItem(SHA_KEY, res.sha);
-            console.log('[GY] 已加载最新数据：' + newData.meta.month + '月，' + newData.storeData.length + ' 家门店');
-            // 优先使用事件通知方式实时更新 React 组件（无需刷新页面）
-            try {
-              var evt = new CustomEvent('gy-data-updated', { detail: newData });
-              window.dispatchEvent(evt);
-              console.log('[GY] 已通过事件通知实时更新数据');
-            } catch(ex) {
-              // 事件通知失败时回退到页面刷新
-              if (!justLoaded) { location.reload(); }
-            }
-          }
-        } else if (!isPoll) {
-          console.log('[GY] 数据已是最新');
+        // 尝试解析数据验证有效性
+        var newData = JSON.parse(jsonStr);
+        if (!newData || !newData.meta || !newData.storeData) return;
+
+        // 如果 ETag 相同则跳过
+        if (etag && storedEtag === etag) {
+          if (!isPoll) console.log('[GY] 数据已是最新');
+          return;
+        }
+
+        // ETag 不同或无 ETag 时，比较内容
+        var currentData = localStorage.getItem(DATA_KEY);
+        if (currentData && currentData === jsonStr) {
+          // 内容相同，保存 ETag 避免下次重复比较
+          if (etag) localStorage.setItem(SHA_KEY, etag);
+          if (!isPoll) console.log('[GY] 数据已是最新');
+          return;
+        }
+
+        // 有新数据
+        console.log('[GY] 检测到数据更新');
+        localStorage.setItem(DATA_KEY, jsonStr);
+        if (etag) localStorage.setItem(SHA_KEY, etag);
+        console.log('[GY] 已加载最新数据：' + newData.meta.month + '月，' + newData.storeData.length + ' 家门店');
+        // 优先使用事件通知方式实时更新 React 组件（无需刷新页面）
+        try {
+          var evt = new CustomEvent('gy-data-updated', { detail: newData });
+          window.dispatchEvent(evt);
+          console.log('[GY] 已通过事件通知实时更新数据');
+        } catch(ex) {
+          if (!justLoaded) { location.reload(); }
         }
       } catch(e) {
         console.warn('[GY] 数据加载失败:', e.message);
@@ -6903,13 +6910,8 @@ root.render(React.createElement(Dashboard));
           showMsg('\u2705 同步成功！' + csha + ' 所有人刷新页面即可看到最新数据', 'ok');
           updateDataStatus();
 
-          // 获取上传后的文件 SHA 并保存
-          apiCall('GET', '/repos/' + GH_USER + '/' + GH_REPO + '/contents/data.json?ref=' + GH_BRANCH, token)
-            .then(function(gRes) {
-              if (gRes.status === 200 && gRes.data.sha) {
-                localStorage.setItem('gy_last_sha', gRes.data.sha);
-              }
-            }).catch(function(){});
+          // 清除本地 ETag 缓存，下次轮询会检测到新数据
+          localStorage.removeItem('gy_last_sha');
 
           setTimeout(function(){ pw.classList.remove('show'); pf.style.width = '0%'; }, 3000);
         } else {
