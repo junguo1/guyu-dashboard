@@ -5678,7 +5678,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = 'c52539b5f16f2afe351c60d680cf58353406b6b0';
+  var BUILD_VERSION = 'de43fc2568d9786c8674661050bc2b30dbaebdaf';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -6001,76 +6001,128 @@ root.render(React.createElement(Dashboard));
             }
           }
 
-          // 3. 从重点品贴花和护理手工费提取适用月份
+          // 3. 从重点品贴花和护理手工费提取开始/结束时间
           window._gyDateConfig = { stickerMonths: {}, careMonths: {} };
+          // 日期比较辅助：将各种格式日期转为 YYYYMMDD 数字
+          function _toNum(d) {
+            if (!d) return 0;
+            var s = String(d).trim();
+            var m = s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+            if (m) return parseInt(m[1]) * 10000 + parseInt(m[2]) * 100 + parseInt(m[3]);
+            return 0;
+          }
           var _stickerWs = _getSheet('重点品贴花');
           if (_stickerWs) {
             var _stHdr = _findHeaderRow(_stickerWs, 'G码');
             var _stGCol = _findCol(_stickerWs, ['G码']);
             var _stBarCol = _findCol(_stickerWs, ['69码']);
             var _stNameCol = _findCol(_stickerWs, ['产品简称']);
-            var _stMonthCol = _findCol(_stickerWs, ['适用月份']);
-            if (_stHdr >= 0 && _stMonthCol >= 0) {
+            var _stStartCol = _findCol(_stickerWs, ['开始时间']);
+            var _stEndCol = _findCol(_stickerWs, ['结束时间']);
+            if (_stHdr >= 0 && _stStartCol >= 0 && _stEndCol >= 0) {
               var _stRange = _XLSX.utils.decode_range(_stickerWs['!ref']);
               for (var _si = _stHdr + 1; _si <= _stRange.e.r; _si++) {
-                var _month = _cellVal(_stickerWs, _si, _stMonthCol);
-                var _parsed = _parseMonth(_month);
-                if (!_parsed) continue;
+                var _sStart = _fmtDate(_cellVal(_stickerWs, _si, _stStartCol));
+                var _sEnd = _fmtDate(_cellVal(_stickerWs, _si, _stEndCol));
+                if (!_sStart || !_sEnd) continue;
+                var _parsed = { start: _sStart, end: _sEnd };
                 if (_stGCol >= 0) { var _g = _cellVal(_stickerWs, _si, _stGCol); if (_g) window._gyDateConfig.stickerMonths[_g] = _parsed; }
                 if (_stBarCol >= 0) { var _b = _cellVal(_stickerWs, _si, _stBarCol); if (_b) window._gyDateConfig.stickerMonths[_b] = _parsed; }
                 if (_stNameCol >= 0) { var _n = _cellVal(_stickerWs, _si, _stNameCol); if (_n) window._gyDateConfig.stickerMonths[_n] = _parsed; }
               }
-              console.log('[GY] 已提取 ' + Object.keys(window._gyDateConfig.stickerMonths).length + ' 个贴花适用月份');
+              console.log('[GY] 已提取 ' + Object.keys(window._gyDateConfig.stickerMonths).length + ' 个贴花时间范围');
             }
           }
           var _careRateWs = _getSheet('护理手工费');
           if (_careRateWs) {
             var _crHdr = _findHeaderRow(_careRateWs, '护理编号');
             var _crCodeCol = _findCol(_careRateWs, ['护理编号']);
-            var _crMonthCol = _findCol(_careRateWs, ['适用月份']);
-            if (_crHdr >= 0 && _crMonthCol >= 0 && _crCodeCol >= 0) {
+            var _crStartCol = _findCol(_careRateWs, ['开始时间']);
+            var _crEndCol = _findCol(_careRateWs, ['结束时间']);
+            if (_crHdr >= 0 && _crStartCol >= 0 && _crEndCol >= 0 && _crCodeCol >= 0) {
               var _crRange = _XLSX.utils.decode_range(_careRateWs['!ref']);
               for (var _cri = _crHdr + 1; _cri <= _crRange.e.r; _cri++) {
                 var _code = _cellVal(_careRateWs, _cri, _crCodeCol);
-                var _cmonth = _cellVal(_careRateWs, _cri, _crMonthCol);
-                var _cparsed = _parseMonth(_cmonth);
-                if (_code && _cparsed) window._gyDateConfig.careMonths[_code] = _cparsed;
+                var _cStart = _fmtDate(_cellVal(_careRateWs, _cri, _crStartCol));
+                var _cEnd = _fmtDate(_cellVal(_careRateWs, _cri, _crEndCol));
+                if (_code && _cStart && _cEnd) window._gyDateConfig.careMonths[_code] = { start: _cStart, end: _cEnd };
               }
-              console.log('[GY] 已提取 ' + Object.keys(window._gyDateConfig.careMonths).length + ' 个护理适用月份');
+              console.log('[GY] 已提取 ' + Object.keys(window._gyDateConfig.careMonths).length + ' 个护理时间范围');
             }
           }
 
-          // 4. 注入日期到提成明细数据
+          // 4. 注入日期到提成明细数据 + 按时间范围过滤
           var _baData = result.commission.baData;
           for (var _bi = 0; _bi < _baData.length; _bi++) {
             var _ba = _baData[_bi];
             if (_ba.stickerDetails) {
               for (var _si2 = 0; _si2 < _ba.stickerDetails.length; _si2++) {
                 var _sd = _ba.stickerDetails[_si2];
-                // 贴花适用月份 → 开始/结束时间
+                // 贴花时间范围 → 开始/结束时间
                 var _sMonth = window._gyDateConfig.stickerMonths[_sd.product] || window._gyDateConfig.stickerMonths[_sd.code] || null;
                 if (_sMonth) { _sd.monthStart = _sMonth.start; _sd.monthEnd = _sMonth.end; }
                 if (_sd.orders) {
+                  // 填充订单日期
                   for (var _oi = 0; _oi < _sd.orders.length; _oi++) {
                     if (!_sd.orders[_oi].orderDate) {
                       _sd.orders[_oi].orderDate = _orderDates[_sd.orders[_oi].orderNo] || '';
                     }
                   }
+                  // 按时间范围过滤订单
+                  if (_sMonth) {
+                    var _sn1 = _toNum(_sMonth.start), _sn2 = _toNum(_sMonth.end);
+                    var _filtered = [];
+                    for (var _fi = 0; _fi < _sd.orders.length; _fi++) {
+                      var _odn = _toNum(_sd.orders[_fi].orderDate);
+                      if (_odn >= _sn1 && _odn <= _sn2) _filtered.push(_sd.orders[_fi]);
+                    }
+                    _sd.orders = _filtered;
+                  }
+                  // 重算贴花合计
+                  var _sQty = 0, _sAmt = 0;
+                  for (var _ri = 0; _ri < _sd.orders.length; _ri++) {
+                    _sQty += (_sd.orders[_ri].qty || 0);
+                    _sAmt += (_sd.orders[_ri].paid || 0);
+                  }
+                  _sd.totalQty = _sQty;
+                  _sd.totalPaid = _sAmt;
+                  if (_sd.rate) _sd.commission = _sQty * _sd.rate;
                 }
               }
             }
             if (_ba.careDetails) {
+              // 填充核销时间
               for (var _cdi = 0; _cdi < _ba.careDetails.length; _cdi++) {
                 var _cd = _ba.careDetails[_cdi];
-                if (!_cd.careDate) {
-                  _cd.careDate = _hxDateMap[_cd.hxNo] || '';
-                }
-                // 护理适用月份 → 开始/结束时间
+                if (!_cd.careDate) _cd.careDate = _hxDateMap[_cd.hxNo] || '';
                 var _cMonth = window._gyDateConfig.careMonths[_cd.code] || null;
                 if (_cMonth) { _cd.monthStart = _cMonth.start; _cd.monthEnd = _cMonth.end; }
               }
+              // 按时间范围过滤护理记录
+              var _hasCareRange = false;
+              for (var _cki = 0; _cki < _ba.careDetails.length; _cki++) {
+                if (_ba.careDetails[_cki].monthStart) { _hasCareRange = true; break; }
+              }
+              if (_hasCareRange) {
+                var _keptCare = [];
+                for (var _ci2 = 0; _ci2 < _ba.careDetails.length; _ci2++) {
+                  var _cd2 = _ba.careDetails[_ci2];
+                  if (!_cd2.monthStart || !_cd2.monthEnd) { _keptCare.push(_cd2); continue; }
+                  var _cn = _toNum(_cd2.careDate);
+                  var _cn1 = _toNum(_cd2.monthStart), _cn2 = _toNum(_cd2.monthEnd);
+                  if (_cn >= _cn1 && _cn <= _cn2) _keptCare.push(_cd2);
+                }
+                _ba.careDetails = _keptCare;
+              }
+              // 重算护理合计
+              var _careTotal = 0;
+              for (var _cti = 0; _cti < _ba.careDetails.length; _cti++) {
+                _careTotal += (_ba.careDetails[_cti].commission || 0);
+              }
+              _ba.careTotal = _careTotal;
             }
           }
+          console.log('[GY] 时间范围过滤完成');
         }
       } catch(_dateErr) {
         console.warn('[GY] 日期提取失败:', _dateErr.message);
@@ -6354,18 +6406,27 @@ root.render(React.createElement(Dashboard));
         }
       }
 
-      // 适用月份
+      // 开始/结束时间
+      function _tn(d) {
+        if (!d) return 0;
+        var s = String(d).trim();
+        var m = s.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+        if (m) return parseInt(m[1]) * 10000 + parseInt(m[2]) * 100 + parseInt(m[3]);
+        return 0;
+      }
       var _cfg = {stickerMonths:{}, careMonths:{}};
       var _stWs = _sn('重点品贴花');
       if (_stWs) {
         var _shdr = _fhr(_stWs, 'G码');
         var _gc = _fc(_stWs, ['G码']), _bc = _fc(_stWs, ['69码']);
-        var _nc = _fc(_stWs, ['产品简称']), _mc = _fc(_stWs, ['适用月份']);
-        if (_shdr >= 0 && _mc >= 0) {
+        var _nc = _fc(_stWs, ['产品简称']);
+        var _ssc = _fc(_stWs, ['开始时间']), _sec = _fc(_stWs, ['结束时间']);
+        if (_shdr >= 0 && _ssc >= 0 && _sec >= 0) {
           var srng = XLSX.utils.decode_range(_stWs['!ref']);
           for (var r3 = _shdr+1; r3 <= srng.e.r; r3++) {
-            var parsed = _pm(_cv(_stWs, r3, _mc));
-            if (!parsed) continue;
+            var ss = _fd(_cv(_stWs,r3,_ssc)), se = _fd(_cv(_stWs,r3,_sec));
+            if (!ss || !se) continue;
+            var parsed = {start:ss, end:se};
             if (_gc >= 0) { var g = _cv(_stWs,r3,_gc); if(g) _cfg.stickerMonths[g] = parsed; }
             if (_bc >= 0) { var b = _cv(_stWs,r3,_bc); if(b) _cfg.stickerMonths[b] = parsed; }
             if (_nc >= 0) { var n = _cv(_stWs,r3,_nc); if(n) _cfg.stickerMonths[n] = parsed; }
@@ -6375,17 +6436,19 @@ root.render(React.createElement(Dashboard));
       var _crWs = _sn('护理手工费');
       if (_crWs) {
         var _crhdr = _fhr(_crWs, '护理编号');
-        var _crc = _fc(_crWs, ['护理编号']), _cmc = _fc(_crWs, ['适用月份']);
-        if (_crhdr >= 0 && _crc >= 0 && _cmc >= 0) {
+        var _crc = _fc(_crWs, ['护理编号']);
+        var _csc = _fc(_crWs, ['开始时间']), _cec = _fc(_crWs, ['结束时间']);
+        if (_crhdr >= 0 && _crc >= 0 && _csc >= 0 && _cec >= 0) {
           var crrng = XLSX.utils.decode_range(_crWs['!ref']);
           for (var r4 = _crhdr+1; r4 <= crrng.e.r; r4++) {
-            var code = _cv(_crWs,r4,_crc), cp = _pm(_cv(_crWs,r4,_cmc));
-            if (code && cp) _cfg.careMonths[code] = cp;
+            var code = _cv(_crWs,r4,_crc);
+            var cs = _fd(_cv(_crWs,r4,_csc)), ce = _fd(_cv(_crWs,r4,_cec));
+            if (code && cs && ce) _cfg.careMonths[code] = {start:cs, end:ce};
           }
         }
       }
 
-      // 注入到数据
+      // 注入到数据 + 按时间范围过滤
       var _odCnt = 0, _hxCnt = 0;
       for (var bi = 0; bi < _baData.length; bi++) {
         var ba = _baData[bi];
@@ -6401,23 +6464,48 @@ root.render(React.createElement(Dashboard));
                   if (sd.orders[oi].orderDate) _odCnt++;
                 }
               }
+              if (sm) {
+                var _n1 = _tn(sm.start), _n2 = _tn(sm.end);
+                var _flt = [];
+                for (var fi = 0; fi < sd.orders.length; fi++) {
+                  var odn = _tn(sd.orders[fi].orderDate);
+                  if (odn >= _n1 && odn <= _n2) _flt.push(sd.orders[fi]);
+                }
+                sd.orders = _flt;
+              }
+              var sq = 0, sa = 0;
+              for (var ri = 0; ri < sd.orders.length; ri++) { sq += (sd.orders[ri].qty||0); sa += (sd.orders[ri].paid||0); }
+              sd.totalQty = sq; sd.totalPaid = sa;
+              if (sd.rate) sd.commission = sq * sd.rate;
             }
           }
         }
         if (ba.careDetails) {
           for (var ci = 0; ci < ba.careDetails.length; ci++) {
             var cd = ba.careDetails[ci];
-            if (!cd.careDate) {
-              cd.careDate = _hxMap[cd.hxNo] || '';
-              if (cd.careDate) _hxCnt++;
-            }
+            if (!cd.careDate) { cd.careDate = _hxMap[cd.hxNo] || ''; if(cd.careDate) _hxCnt++; }
             var cm = _cfg.careMonths[cd.code] || null;
             if (cm) { cd.monthStart = cm.start; cd.monthEnd = cm.end; }
           }
+          var _hasR = false;
+          for (var ck = 0; ck < ba.careDetails.length; ck++) { if(ba.careDetails[ck].monthStart){_hasR=true;break;} }
+          if (_hasR) {
+            var _kc = [];
+            for (var ci2 = 0; ci2 < ba.careDetails.length; ci2++) {
+              var cd2 = ba.careDetails[ci2];
+              if (!cd2.monthStart || !cd2.monthEnd) { _kc.push(cd2); continue; }
+              var cn = _tn(cd2.careDate), cn1 = _tn(cd2.monthStart), cn2 = _tn(cd2.monthEnd);
+              if (cn >= cn1 && cn <= cn2) _kc.push(cd2);
+            }
+            ba.careDetails = _kc;
+          }
+          var ct = 0;
+          for (var cti = 0; cti < ba.careDetails.length; cti++) ct += (ba.careDetails[cti].commission||0);
+          ba.careTotal = ct;
         }
       }
       window._gyDateConfig = _cfg;
-      console.log('[GY] 日期回填完成：订单日期 ' + _odCnt + ' 条，核销时间 ' + _hxCnt + ' 条');
+      console.log('[GY] 日期回填+过滤完成：订单日期 ' + _odCnt + ' 条，核销时间 ' + _hxCnt + ' 条');
     } catch(e) {
       console.warn('[GY] 日期回填失败:', e.message);
     }
@@ -6766,8 +6854,8 @@ root.render(React.createElement(Dashboard));
       { name: '导购指标', headers: ['店经理','三级部门','门店编码','员工账号','姓名','职位','入职日期','常规柜台指标','新会','山海支数指标','四时无垠指标','护理人数','客单价指标'] },
       { name: '购买结构', headers: ['柜台编码','柜台名称','员工编码','员工姓名'] },
       { name: '零售单管理', headers: ['订单编号','秉坤匹配支付单支付流水号','支付商户名称','订单日期','订单来源','配送方式','发货类型','销售单位编码','销售单位名称','销售人员编码','销售人员名称','会员卡号','会员等级','会员昵称','会员名称','会员手机号','会员归属导购编码','会员归属导购名称','明细oid','明细行号','商品编码','商品条码','规格编码','商品组名称（最高层级）','规格条码','商品单价','商品名称','商品品牌','商品分类','商品系列','商品数量','基本单位','商品实付金额','使用积分','订单使用总积分','商品状态','销售类型','订单类型YDR','活动名称','终端单据号','第三方单据号1','第三方单据号2','订单商品金额','运费','订单实付金额','审核状态','订单状态','开票状态','最近一次售后申请时间','最近一次退货状态','最近一次退款状态','最近一次售后申请单完成时间','售后状态','未提数量','已退商品数量','已退金额','支付状态','物流状态','支付方式','运输公司','快递单号','收货人姓名','收货人手机号','省份','城市','区域','收货地址','接收方销售单','营销溯源码','营销任务','分享员工','分享会员','推广员','积分兑换类型','卖家备注','买家备注','收货时间','完成时间','对账信息','对账信息（第三方单据号1）'] },
-      { name: '护理手工费', headers: ['护理编号','护理项目','手工费标准','适用月份'] },
-      { name: '重点品贴花', headers: ['G码','产品简称','商品组件数量','69码','贴花奖金','产品分类','适用月份'] }
+      { name: '护理手工费', headers: ['护理编号','护理项目','手工费标准','开始时间','结束时间'] },
+      { name: '重点品贴花', headers: ['G码','产品简称','商品组件数量','69码','贴花奖金','产品分类','开始时间','结束时间'] }
     ];
     sheets.forEach(function(s) {
       var ws = XLSX.utils.aoa_to_sheet([s.headers]);
