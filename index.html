@@ -5678,7 +5678,7 @@ root.render(React.createElement(Dashboard));
   var DATA_KEY = 'gy_dashboard_data';
   var ERRORS_KEY = 'gy_errors';
   var MAX_STORAGE = 4.5 * 1024 * 1024;
-  var BUILD_VERSION = 'de43fc2568d9786c8674661050bc2b30dbaebdaf';
+  var BUILD_VERSION = '4504c512226f9e80e9d2d3a2b03cd0f93154c45c';
 
   // ─── 权限检测 ───────────────────────────────────────────────────────────
   var params = new URLSearchParams(location.search);
@@ -6175,6 +6175,13 @@ root.render(React.createElement(Dashboard));
     var justLoaded = (Date.now() - pageLoadTime) < 10000;
 
     var storedEtag = localStorage.getItem(SHA_KEY) || '';
+    var token = localStorage.getItem(TOKEN_KEY) || null;
+
+    // ── 无 Token 用户直接走 jsDelivr CDN（更快、无限额）──
+    if (!token) {
+      fetchFromRaw(isPoll, justLoaded, storedEtag);
+      return;
+    }
 
     // ── 主路径：GitHub API + If-None-Match（304 不消耗配额）──
     var apiXhr = new XMLHttpRequest();
@@ -6182,8 +6189,7 @@ root.render(React.createElement(Dashboard));
     apiXhr.setRequestHeader('Accept', 'application/vnd.github.v3+json');
     apiXhr.setRequestHeader('Cache-Control', 'no-cache, no-store');
     if (storedEtag) apiXhr.setRequestHeader('If-None-Match', storedEtag);
-    var token = localStorage.getItem(TOKEN_KEY) || null;
-    if (token) apiXhr.setRequestHeader('Authorization', 'token ' + sanitizeToken(token));
+    apiXhr.setRequestHeader('Authorization', 'token ' + sanitizeToken(token));
     apiXhr.timeout = 10000;
     apiXhr.onload = function() {
       // 304 = 未修改，不消耗配额
@@ -6230,13 +6236,11 @@ root.render(React.createElement(Dashboard));
     apiXhr.send();
   }
 
-  // ── 降级路径：raw.githubusercontent.com ──
+  // ── 降级路径：jsDelivr CDN（purge 后秒级更新）──
   function fetchFromRaw(isPoll, justLoaded, storedEtag) {
     var xhr = new XMLHttpRequest();
-    var rawUrl = 'https://raw.githubusercontent.com/' + GH_USER + '/' + GH_REPO + '/' + GH_BRANCH + '/data.json?_t=' + Date.now();
-    xhr.open('GET', rawUrl);
-    xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, max-age=0');
-    xhr.setRequestHeader('Pragma', 'no-cache');
+    var cdnUrl = 'https://cdn.jsdelivr.net/gh/' + GH_USER + '/' + GH_REPO + '/data.json?_t=' + Date.now();
+    xhr.open('GET', cdnUrl);
     xhr.timeout = 10000;
     xhr.onload = function() {
       if (xhr.status !== 200) return;
@@ -6246,16 +6250,16 @@ root.render(React.createElement(Dashboard));
         var newData = JSON.parse(jsonStr);
         if (!newData || !newData.meta || !newData.storeData) return;
         if (etag && storedEtag === etag) {
-          if (!isPoll) console.log('[GY] 数据已是最新（raw）');
+          if (!isPoll) console.log('[GY] 数据已是最新（CDN）');
           return;
         }
         var currentData = localStorage.getItem(DATA_KEY);
         if (currentData && currentData === jsonStr) {
           if (etag) localStorage.setItem(SHA_KEY, etag);
-          if (!isPoll) console.log('[GY] 数据已是最新（raw 内容比对）');
+          if (!isPoll) console.log('[GY] 数据已是最新（CDN 内容比对）');
           return;
         }
-        console.log('[GY] 检测到数据更新（raw）');
+        console.log('[GY] 检测到数据更新（CDN）');
         localStorage.setItem(DATA_KEY, jsonStr);
         if (etag) localStorage.setItem(SHA_KEY, etag);
         console.log('[GY] 已加载最新数据：' + newData.meta.month + '月，' + newData.storeData.length + ' 家门店');
@@ -6265,11 +6269,11 @@ root.render(React.createElement(Dashboard));
           if (!justLoaded) { location.reload(); }
         }
       } catch(e) {
-        console.warn('[GY] raw 数据加载失败:', e.message);
+        console.warn('[GY] CDN 数据加载失败:', e.message);
       }
     };
-    xhr.onerror = function() { console.warn('[GY] raw 网络错误'); };
-    xhr.ontimeout = function() { console.warn('[GY] raw 请求超时'); };
+    xhr.onerror = function() { console.warn('[GY] CDN 网络错误'); };
+    xhr.ontimeout = function() { console.warn('[GY] CDN 请求超时'); };
     xhr.send();
   }
 
@@ -7066,10 +7070,29 @@ root.render(React.createElement(Dashboard));
     })
       .then(function(res) {
         if (res.status === 200 || res.status === 201) {
+          pf.style.width = '90%';
+          pt.textContent = '清除CDN缓存...';
+
+          // 调用 jsDelivr purge API 立即清除 CDN 缓存，确保其他用户秒级获取最新数据
+          var purgeXhr = new XMLHttpRequest();
+          purgeXhr.open('GET', 'https://purge.jsdelivr.net/gh/' + GH_USER + '/' + GH_REPO + '/data.json');
+          purgeXhr.timeout = 8000;
+          purgeXhr.onload = function() {
+            console.log('[GY] CDN 缓存已清除 (jsDelivr purge status: ' + purgeXhr.status + ')');
+          };
+          purgeXhr.onerror = function() { console.warn('[GY] CDN purge 请求失败（不影响同步）'); };
+          purgeXhr.ontimeout = function() { console.warn('[GY] CDN purge 超时（不影响同步）'); };
+          purgeXhr.send();
+          // 同时清除 @branch 版本的缓存
+          var purgeXhr2 = new XMLHttpRequest();
+          purgeXhr2.open('GET', 'https://purge.jsdelivr.net/gh/' + GH_USER + '/' + GH_REPO + '@' + GH_BRANCH + '/data.json');
+          purgeXhr2.timeout = 8000;
+          purgeXhr2.send();
+
           pf.style.width = '100%';
           pt.textContent = '同步完成！';
           var csha = res.data.commit ? res.data.commit.sha.slice(0, 7) : '';
-          showMsg('\u2705 同步成功！' + csha + ' 所有人刷新页面即可看到最新数据', 'ok');
+          showMsg('\u2705 同步成功！' + csha + ' 其他人将在10秒内看到最新数据', 'ok');
           updateDataStatus();
 
           // 清除本地 ETag 缓存，下次轮询会检测到新数据
